@@ -1,0 +1,9 @@
+numpy==1.20.0rc1
+torch==1.7.0+cu110
+torchvision==0.8.1+cu110
+torchaudio===0.7.0
+# At release these probably should have defined versions.
+flake8
+matplotlib
+astropy
+black
