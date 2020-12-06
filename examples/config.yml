@@ -1,0 +1,9 @@
+# Path to directory containing .fits files.
+fits_directory:
+  '/project/druhe/ASf_201909011855/bands/'
+# Indices [start, stop] that specify the location of the time-stamp in the filename.
+timestamp_start_stop:
+  [0, 19]
+# Indices [start, stop] that specify the location of subband in the filename.
+subband_start_stop:
+  [20, 24]

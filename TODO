@@ -1,0 +1,2 @@
+- Simulations should export .fits files.
+- Time QC on 3072x3072 by adding a timer option to the class.

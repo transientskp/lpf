@@ -10,3 +10,5 @@ black
 jupyter
 scipy
 tqdm
+PyYAML
+pandas

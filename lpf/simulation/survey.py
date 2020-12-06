@@ -3,7 +3,7 @@ Author: David Ruhe
 Date: 2020-12-05
 """
 import os
-from tqdm import trange
+from tqdm import trange  # type: ignore
 from lpf.simulation.sky import SkySimulator
 from astropy.table import Table  # type: ignore
 import numpy as np

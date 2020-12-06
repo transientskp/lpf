@@ -1,0 +1,8 @@
+#!/bin/sh
+# Changing path to LPF installation directory.
+cd $(realpath $(dirname "$BASH_SOURCE")/..)
+# Activate environment.
+. "./activate.sh"
+# Run LPF
+echo $(realpath $PYTHONPATH)
+python ./lpf/main.py "$@"
