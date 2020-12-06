@@ -6,7 +6,7 @@ from lpf.bolts.torch import nanmax, nanmean
 
 class QualityControl:
     def __init__(
-        self, rfi_threshold: float = 5, corruption_threshold: float = 1e5
+        self, rfi_threshold: float = 5, corruption_threshold: float = 1e5,
     ) -> None:
         self.rfi_threshold = rfi_threshold
         self.corruption_threshold = corruption_threshold

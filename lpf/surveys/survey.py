@@ -59,6 +59,7 @@ class Survey:
                 "band": bands,
             }
         )
+        assert len(data) > 0
         return data
 
     def __len__(self):

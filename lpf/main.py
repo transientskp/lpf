@@ -1,15 +1,18 @@
 import sys
-import yaml
-from lpf.surveys import Survey
-from tqdm import trange  # type: ignore
-import torch
+import warnings
+from typing import List, Tuple, Union
+
 import astropy.io.fits  # type: ignore
 import numpy as np
-from typing import List, Union, Tuple
-from astropy.wcs import WCS  # type: ignore
-from lpf.quality_control import QualityControl
+import torch
+import yaml
 from astropy.utils.exceptions import AstropyWarning  # type: ignore
-import warnings
+from astropy.wcs import WCS  # type: ignore
+from tqdm import trange  # type: ignore
+
+from lpf.quality_control import QualityControl
+from lpf.surveys import Survey
+import time
 
 warnings.simplefilter("ignore", category=AstropyWarning)
 
@@ -32,6 +35,10 @@ class LivePulseFinder:
             self.cuda: bool = False
 
         self.qc = QualityControl()
+
+        self.timings = {
+            'quality_control': []
+        }
 
     def _load_data(self, t: int) -> Tuple[Union[np.ndarray, torch.Tensor], WCS]:
 
@@ -58,9 +65,16 @@ class LivePulseFinder:
         for t in trange(len(self.survey)):  # type: ignore
             images, wcs = self._load_data(t)
             # Quality control
+            s = time.time()
             images = self.qc(images)
-            
-            break
+            if self.cuda:
+                torch.cuda.synchronize()  # type: ignore
+            e = time.time()
+            self.timings['quality_control'].append(e - s)
+
+
+        print(self.timings)
+
 
 
 def get_config():

@@ -11,17 +11,18 @@ import os
 from astropy.table import Table  # type: ignore
 from tqdm import trange  # type: ignore
 
-IM_SIZE = 1024
+IM_SIZE = 2300
 N_CHANNELS = 16
 BEAM_WIDTH = np.pi / 6
-INTENSITY_MAP = "data/intensity_maps/1024x1024.npy"
-INTENSITY_MULTIPLIER = 8e-2
+INTENSITY_MAP = "data/intensity_maps/2300x2300.npy"
+INTENSITY_MULTIPLIER = 1e-1
 N_TIMESTEPS = 8
 MU = -0.6
-SIGMA = 1.5
+SIGMA = 1.6
 N_SOURCES = IM_SIZE ** 2 // 1024
 OUTPUT_DIR = f"data/surveys/sim_{IM_SIZE}x{IM_SIZE}"
-TEMPLATE_FILE = '/project/druhe/ASf_201909011855/bands/295/2019-09-01T18:57:00-S295-B1.fits'
+# TEMPLATE_FILE = '/project/druhe/ASf_201909011855/bands/295/2019-09-01T18:57:00-S295-B1.fits'
+TEMPLATE_FILE = '/project/druhe/2020-05-10T05:39:00-05:42:10_all/2020-05-10T05:38:59.2-SB308.fits'
 
 
 def flux_sample_fn(n_sources: int):

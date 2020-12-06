@@ -1,6 +1,7 @@
 # Path to directory containing .fits files.
 fits_directory:
-  '/project/druhe/ASf_201909011855/bands/'
+  # '/project/druhe/ASf_201909011855/bands/'
+  'data/surveys/sim_2300x2300'
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
 timestamp_start_stop:
   [0, 19]
