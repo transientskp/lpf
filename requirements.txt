@@ -7,3 +7,6 @@ flake8
 matplotlib
 astropy
 black
+jupyter
+scipy
+tqdm
