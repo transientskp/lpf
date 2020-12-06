@@ -20,7 +20,8 @@ N_TIMESTEPS = 8
 MU = -0.6
 SIGMA = 1.5
 N_SOURCES = IM_SIZE ** 2 // 1024
-OUTPUT_DIR = f"data/surveys/{IM_SIZE}x{IM_SIZE}"
+OUTPUT_DIR = f"data/surveys/sim_{IM_SIZE}x{IM_SIZE}"
+TEMPLATE_FILE = '/project/druhe/ASf_201909011855/bands/295/2019-09-01T18:57:00-S295-B1.fits'
 
 
 def flux_sample_fn(n_sources: int):
@@ -42,6 +43,6 @@ if __name__ == "__main__":
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     catalog: Table = skysim.sample_catalog(N_SOURCES, flux_sample_fn)
 
-    survey = SurveySimulator(skysim, catalog, OUTPUT_DIR)
+    survey = SurveySimulator(skysim, catalog, OUTPUT_DIR, TEMPLATE_FILE)
 
     survey(N_TIMESTEPS)

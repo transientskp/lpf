@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import j1  # type: ignore
-from lpf.bolts.misc import odd_root
+from lpf.bolts.math import odd_root
 
 
 def h(n_1: np.ndarray, n_2: np.ndarray, w: float) -> np.ndarray:
