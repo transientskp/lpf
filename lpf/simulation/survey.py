@@ -24,9 +24,11 @@ class SurveySimulator:
         self.skysim = skysim
         self.fits_template_file = fits_template_file
         self.output_dir = output_dir
+        print(f"Saving to {os.path.abspath(output_dir)}")
         self.timestamp = datetime.datetime.now()
-
-        self.hdu = fits_template_file
+        self.template: np.ndarray
+        self.header: fits.Header
+        self.template, self.header = fits.getdata(self.fits_template_file, header=True)  # type: ignore
 
 
     def __call__(self, n_timesteps: int):
@@ -35,9 +37,9 @@ class SurveySimulator:
         for t in trange(n_timesteps):  # type: ignore
             # f = os.path.join(self.output_dir, f"{t:03}.npy")
 
+            im: np.ndarray
             sky = np.float32(self.skysim(self.catalog))
             for band, im in enumerate(sky):  # type: ignore
-                im: np.ndarray
                 band_str = f'S{band:03}'
                 output_dir = os.path.join(self.output_dir, band_str)
                 os.makedirs(output_dir, exist_ok=True)
@@ -46,6 +48,10 @@ class SurveySimulator:
                 filename = f'{t_str}-{band_str}.fits'
                 filename = os.path.join(output_dir, filename)
 
-                with fits.open(self.fits_template_file) as hdu:  # type: ignore
-                    hdu[0].data = hdu[0].data * 0 + im[None, None]  # type: ignore
-                    hdu.writeto(filename)  # type: ignore
+                print(filename)
+
+
+                data = self.template * 0 + im[None, None] 
+
+                hdu = fits.PrimaryHDU(data, header=self.header)
+                hdu.writeto(filename)  # type: ignore

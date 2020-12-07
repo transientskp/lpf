@@ -8,3 +8,23 @@ timestamp_start_stop:
 # Indices [start, stop] that specify the location of subband in the filename.
 subband_start_stop:
   [20, 24]
+# Sigma for Gaussian filter.
+intensity_map_sigma:
+  23
+# Sigma for Gaussian filter.
+variability_map_sigma:
+  23
+# Truncation sigma Gaussian filter.
+filter_truncate:
+  2
+# Stride of Gaussian filter.
+filter_stride: 
+  16
+image_shape:
+  [2300, 2300]
+kappa:
+  5.5
+detection_radius:
+  1024
+sigmaclip_kernel_size: 100
+sigmaclip_stride: 100

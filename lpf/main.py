@@ -1,3 +1,4 @@
+from lpf.source_finder.filter_duplicates import filter_duplicates_and_nan
 import sys
 import warnings
 from typing import List, Tuple, Union
@@ -11,8 +12,16 @@ from astropy.wcs import WCS  # type: ignore
 from tqdm import trange  # type: ignore
 
 from lpf.quality_control import QualityControl
+
+# from lpf.statistics_estimation import StatisticsEstimator
+# from lpf.sigma_clip import SigmaClipper
+from lpf.sigma_clip import LocalSigmaClipper
 from lpf.surveys import Survey
+from lpf.source_finder import SourceFinderMaxFilter
 import time
+from collections import defaultdict
+from typing import List, Any, Callable, Union
+from types import FunctionType
 
 warnings.simplefilter("ignore", category=AstropyWarning)
 
@@ -35,10 +44,29 @@ class LivePulseFinder:
             self.cuda: bool = False
 
         self.qc = QualityControl()
+        # self.statistics = StatisticsEstimator(
+        #     config["intensity_map_sigma"],  # type: ignore
+        #     config["variability_map_sigma"],  # type: ignore
+        #     stride=config["filter_stride"],  # type: ignore
+        #     truncate=config["filter_truncate"],  # type: ignore
+        # )
 
-        self.timings = {
-            'quality_control': []
-        }
+        # self.clipper = SigmaClipper(
+        #     config["image_shape"], config["kappa"], config["detection_radius"]  # type: ignore
+        # )
+
+        self.clipper = LocalSigmaClipper(
+            config["image_shape"],  # type: ignore
+            config["kappa"],  # type: ignore
+            config["detection_radius"],  # type: ignore
+            config["sigmaclip_kernel_size"],  # type: ignore
+            config["sigmaclip_stride"],  # type: ignore
+        )
+
+        image_size: int = config["image_shape"][0]
+        self.sourcefinder = SourceFinderMaxFilter(image_size)
+
+        self.timings: defaultdict[str, List[float]] = defaultdict(list)
 
     def _load_data(self, t: int) -> Tuple[Union[np.ndarray, torch.Tensor], WCS]:
 
@@ -59,18 +87,45 @@ class LivePulseFinder:
 
         return images, wcs
 
+    def call(
+        self,
+        start_time: float,
+        fn: Callable[[Any], Any],
+        *args: Any,
+        **kwargs: Any,
+
+    ) -> Any:
+
+        result = fn(*args, **kwargs)
+        # if self.cuda:
+        #     torch.cuda.synchronize()  # type: ignore
+        end_time = time.time()
+        if isinstance(fn, FunctionType):
+            name: str = fn.__name__  # type: ignore
+        else:
+            name: str = fn.__class__.__name__
+
+        self.timings[name].append(end_time - start_time)
+        return result
+
     def run(self) -> None:
 
         t: int
         for t in trange(len(self.survey)):  # type: ignore
             images, wcs = self._load_data(t)
-            # Quality control
             s = time.time()
-            images = self.qc(images)
-            if self.cuda:
-                torch.cuda.synchronize()  # type: ignore
-            e = time.time()
-            self.timings['quality_control'].append(e - s)
+            # Quality control
+            # images:  = self.run_qc(images)
+            images: Union[torch.Tensor, np.ndarray] = self.call(s, self.qc, images)
+            # Statistics estimation.
+            # intensity_map, variability_map, intensity_subtracted = self.call(
+            #     s, self.statistics, images
+            # )
+            # Sigma clipping.
+            peaks, _ = self.call(s, self.clipper, images)
+
+            source_table = self.call(s, self.sourcefinder, peaks, wcs=wcs)
+            source_table = self.call(s, filter_duplicates_and_nan, source_table)
 
 
         print(self.timings)
