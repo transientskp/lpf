@@ -12,7 +12,7 @@ setuptools.setup(
     version="0.0.1",
     author="David Ruhe",
     author_email="d.ruhe@uva.nl",
-    description="LOFAR Pulse Finder",
+    description="Live Pulse Finder",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/transientskp/lpf",
