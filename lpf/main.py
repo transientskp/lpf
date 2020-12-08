@@ -141,7 +141,7 @@ class LivePulseFinder:
             detected_sources = self.call(s, self.sourcefinder, peaks, wcs=wcs)
             self.call(s, self.runningcatalog, t, detected_sources, images)
 
-            self.runningcatalog.filter_sources_for_analysis(t, 64)
+            self.runningcatalog.filter_sources_for_analysis(t, self.config['array_length'])  # type: ignore
 
             if t == length:
                 break
