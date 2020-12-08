@@ -1,30 +1,20 @@
 # Path to directory containing .fits files.
-fits_directory:
-  # '/project/druhe/ASf_201909011855/bands/'
-  'data/surveys/sim_2300x2300'
+fits_directory: 'data/surveys/sim_2300x2300'
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
-timestamp_start_stop:
-  [0, 19]
+timestamp_start_stop: [0, 19]
 # Indices [start, stop] that specify the location of subband in the filename.
-subband_start_stop:
-  [20, 24]
+subband_start_stop: [20, 24]
 # Sigma for Gaussian filter.
-intensity_map_sigma:
-  23
+intensity_map_sigma: 23
 # Sigma for Gaussian filter.
-variability_map_sigma:
-  23
+variability_map_sigma: 23
 # Truncation sigma Gaussian filter.
-filter_truncate:
-  2
+filter_truncate: 2
 # Stride of Gaussian filter.
-filter_stride: 
-  16
-image_shape:
-  [2300, 2300]
-kappa:
-  5.5
-detection_radius:
-  1024
+filter_stride: 16
+image_shape: [2300, 2300]
+kappa: 3
+detection_radius: 1024
 sigmaclip_kernel_size: 100
 sigmaclip_stride: 100
+output_folder: './runs/'

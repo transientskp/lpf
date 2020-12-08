@@ -1,4 +1,3 @@
-from lpf.source_finder.filter_duplicates import filter_duplicates_and_nan
 import sys
 import warnings
 from typing import List, Tuple, Union
@@ -18,10 +17,15 @@ from lpf.quality_control import QualityControl
 from lpf.sigma_clip import LocalSigmaClipper
 from lpf.surveys import Survey
 from lpf.source_finder import SourceFinderMaxFilter
+from lpf.running_catalog import RunningCatalog
 import time
 from collections import defaultdict
 from typing import List, Any, Callable, Union
 from types import FunctionType
+
+# from lpf.bolts.vis import plot_skymap, catalog_video
+from lpf.bolts.vis import catalog_video
+import os
 
 warnings.simplefilter("ignore", category=AstropyWarning)
 
@@ -65,6 +69,16 @@ class LivePulseFinder:
 
         image_size: int = config["image_shape"][0]
         self.sourcefinder = SourceFinderMaxFilter(image_size)
+        os.makedirs(config["output_folder"])  # type: ignore
+        monitor_length = config["array_length"] // 2  # type: ignore
+        self.runningcatalog = RunningCatalog(
+            config["output_folder"],                  # type: ignore
+            config["box_size"],                       # type: ignore
+            config["mmap_n_sources"],                 # type: ignore
+            config["mmap_n_timesteps"],               # type: ignore
+            monitor_length=monitor_length,            # type: ignore
+            separation_crit=config['separation_crit'] # type: ignore
+        )
 
         self.timings: defaultdict[str, List[float]] = defaultdict(list)
 
@@ -93,12 +107,11 @@ class LivePulseFinder:
         fn: Callable[[Any], Any],
         *args: Any,
         **kwargs: Any,
-
     ) -> Any:
 
         result = fn(*args, **kwargs)
         # if self.cuda:
-        #     torch.cuda.synchronize()  # type: ignore
+        # torch.cuda.synchronize()  # type: ignore
         end_time = time.time()
         if isinstance(fn, FunctionType):
             name: str = fn.__name__  # type: ignore
@@ -111,7 +124,8 @@ class LivePulseFinder:
     def run(self) -> None:
 
         t: int
-        for t in trange(len(self.survey)):  # type: ignore
+        length = 96
+        for t in trange(length):  # type: ignore
             images, wcs = self._load_data(t)
             s = time.time()
             # Quality control
@@ -124,12 +138,29 @@ class LivePulseFinder:
             # Sigma clipping.
             peaks, _ = self.call(s, self.clipper, images)
 
-            source_table = self.call(s, self.sourcefinder, peaks, wcs=wcs)
-            source_table = self.call(s, filter_duplicates_and_nan, source_table)
+            detected_sources = self.call(s, self.sourcefinder, peaks, wcs=wcs)
+            self.call(s, self.runningcatalog, t, detected_sources, images)
 
+            self.runningcatalog.filter_sources_for_analysis(t, 64)
+
+            if t == length:
+                break
+
+        anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=1)
+        anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
+
+        # source_idx = 0
+
+        # locs = []
+
+        # for i in range(length):
+        #     catitem = self.runningcatalog[i]
+        #     source = catitem[catitem["id"] == source_idx]
+        #     print(source)
+
+        # source_locations = self.runningcatalog.timesteps[0]
 
         print(self.timings)
-
 
 
 def get_config():

@@ -9,9 +9,8 @@ from astropy.wcs.utils import pixel_to_skycoord  # type: ignore
 
 
 class SourceFinderMaxFilter:
-    def __init__(self, image_size: int, duplicate_filter_degrees: int = 1):
+    def __init__(self, image_size: int):
         self.maxfilter_torch = MaxFilter(image_size)
-        self.duplicate_filter_degrees = 1
 
     def __call__(
         self, peaks: Union[np.ndarray, torch.Tensor], wcs: Union[None, WCS] = None
@@ -32,7 +31,7 @@ class SourceFinderMaxFilter:
             )
 
         else:
-            maxima = np.stack([ndimage.maximum_filter(image) for image in peaks])  # type: ignore
+            maxima = np.stack([ndimage.maximum_filter(image, size=3) for image in peaks])  # type: ignore
             peaks_mask = (maxima == peaks) & (peaks > 0)
             peak_locs = peaks_mask.nonzero()
             peak_values = maxima[peak_locs]
@@ -49,7 +48,7 @@ class SourceFinderMaxFilter:
         peak_values: np.ndarray
 
         # Construct the output Table
-        colnames = ["channel", "x_peak", "y_peak", "peak_flux"]
+        colnames = ["channel", "x_peak", "y_peak", "detection_flux"]
         coldata: List[np.ndarray] = [
             channel,
             x_locs,
