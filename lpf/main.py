@@ -72,12 +72,12 @@ class LivePulseFinder:
         os.makedirs(config["output_folder"])  # type: ignore
         monitor_length = config["array_length"] // 2  # type: ignore
         self.runningcatalog = RunningCatalog(
-            config["output_folder"],                  # type: ignore
-            config["box_size"],                       # type: ignore
-            config["mmap_n_sources"],                 # type: ignore
-            config["mmap_n_timesteps"],               # type: ignore
-            monitor_length=monitor_length,            # type: ignore
-            separation_crit=config['separation_crit'] # type: ignore
+            config["output_folder"],  # type: ignore
+            config["box_size"],  # type: ignore
+            config["mmap_n_sources"],  # type: ignore
+            config["mmap_n_timesteps"],  # type: ignore
+            monitor_length=monitor_length,  # type: ignore
+            separation_crit=config["separation_crit"],  # type: ignore
         )
 
         self.timings: defaultdict[str, List[float]] = defaultdict(list)
@@ -141,7 +141,7 @@ class LivePulseFinder:
             detected_sources = self.call(s, self.sourcefinder, peaks, wcs=wcs)
             self.call(s, self.runningcatalog, t, detected_sources, images)
 
-            self.runningcatalog.filter_sources_for_analysis(t, self.config['array_length'])  # type: ignore
+            self.runningcatalog.filter_sources_for_analysis(t, self.config["array_length"])  # type: ignore
 
             if t == length:
                 break

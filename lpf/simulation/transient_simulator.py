@@ -112,7 +112,6 @@ class TransientsSimulator:
         )
 
         self.output_folder: str = config["output_folder"]
-        print(self.output_folder)
         os.makedirs(self.output_folder)
 
         self.data_mmap: np.ndarray = open_memmap(
@@ -121,7 +120,6 @@ class TransientsSimulator:
             dtype=np.float32,
             shape=(config["nevents"], len(self.telescope.frequencies), config["array_length"]),  # type: ignore
         )
-
         self.param_mmap: np.ndarray = open_memmap(
             os.path.join(self.output_folder, "parameters.npy"),
             mode="w+",
@@ -137,3 +135,13 @@ class TransientsSimulator:
             data, parameters = self.event_simulator(self.telescope)
             self.data_mmap[i] = data
             self.param_mmap[i] = parameters
+
+        del self.data_mmap
+
+
+        self.data_mmap: np.ndarray = open_memmap(
+            os.path.join(self.output_folder, "data.npy"),
+            mode="r",
+            # dtype=np.float32,
+            # shape=(config["nevents"], len(self.telescope.frequencies), config["array_length"]),  # type: ignore
+        )

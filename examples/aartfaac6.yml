@@ -15,3 +15,24 @@ mmap_n_timesteps: 1024
 box_size: 12
 separation_crit: 1.5
 array_length: 64
+nn:
+  path: 'data/nn/epoch_29.ckpt'
+  architecture: [
+      # ['conv', in_channels, out_channels, kernel_size, stride, padding]
+      ["conv", 1, 8, 1, [1, 2], 0],
+      ["act"],
+      ["conv", 8, 16, 3, [1, 2], 1],
+      ["act"],
+      ["conv", 16, 32, 3, [2, 2], 1],
+      ["act"],
+      ["conv", 32, 64, 3, [2, 2], 1],
+      ["act"],
+      ["conv", 64, 128, 3, [2, 2], 1],
+      ["act"],
+      ["conv", 128, 256, 3, [2, 2], 1],
+      ["act"],
+      ["flatten"],
+      ["act"],
+      # ['linear', in_features, out_features]
+      ["linear", 256, 5],
+    ]

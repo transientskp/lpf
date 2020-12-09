@@ -8,4 +8,4 @@ fluence_range: [0.0, 1.0]
 width_range: [0, 16]
 spec_ind_range: [-4, 4]
 output_folder: 'data/transient_sim/'
-nevents: 16
+nevents: 16384

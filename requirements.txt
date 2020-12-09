@@ -3,6 +3,7 @@ torch==1.7.0+cu110
 torchvision==0.8.1+cu110
 torchaudio===0.7.0
 # At release these probably should have defined versions.
+tensorboard
 flake8
 matplotlib
 astropy
