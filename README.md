@@ -1,4 +1,6 @@
 # Live Pulse Finder
 
-## Simulation
-There are two types of simulations included in the package. The all-sky simulator and the dynamic spectrum simulator.
+This repository contains a method for detecting transient astronomical events in realtime.
+
+# Usage
+See `tutorials` folder for instructions.
