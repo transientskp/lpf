@@ -41,7 +41,7 @@ class Trainer:
         self, result: Dict["str", Union[float, Any]], divider: str, index: int
     ):
         for k in result:
-            print(type(results[k]))
+            print(type(result[k]))
             if isinstance(result[k], (torch.Tensor, np.ndarray, float, int)):
                 self.writer.add_scalar(f"{k}/{divider}", result[k], index)  # type: ignore
             elif isinstance(result[k], plt.Figure):
