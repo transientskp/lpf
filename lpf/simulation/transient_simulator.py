@@ -49,12 +49,14 @@ class Event(object):
 
             # Center the pulse on t_index
             shift = int(t_index - telescope.array_length / 2)
+            shift = min(telescope.array_length, max(-telescope.array_length, shift))
             if shift < 0:
                 pulse_centered = np.concatenate([np.zeros((-shift)), pulse.copy()[:shift]])
             else:
                 pulse_centered = np.concatenate([pulse.copy()[shift:], np.zeros((shift))])
 
-            pulse_centered = pulse_centered / pulse_centered.max()
+            if pulse_centered.max() > 0:
+                pulse_centered = pulse_centered / pulse_centered.max()
             assert np.all(pulse_centered >= 0)
 
             val = pulse_centered.copy()
