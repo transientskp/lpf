@@ -239,9 +239,10 @@ class RunningCatalog:
     def filter_sources_for_analysis(self, t: int, length: int):
         lengths: pd.Series = self.meta['last_measured'] - self.meta['start_t']  # type: ignore
         ready_for_analysis: pd.Series = (self.meta['last_measured'] == t) & (lengths > length)  # type: ignore
-        x_batch = self.flux_data[:self.ns_id][ready_for_analysis, :, t - length: t]
+        source_ids, = ready_for_analysis.to_numpy().nonzero()  # Unpacked since .nonzero() returns tuple.
+        x_batch = self.flux_data[source_ids, :, t - length: t]
         print(f"Neural network input shape: {x_batch.shape}")
-        return x_batch
+        return source_ids, x_batch
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
         return self.add_timestep(*args, **kwargs)

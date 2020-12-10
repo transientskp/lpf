@@ -1,20 +1,18 @@
 # Path to directory containing .fits files.
-# fits_directory: '/project/druhe/ASf_201909011855/'
-fits_directory: '/project/druhe/SB_I1/SB_I1/'
+fits_directory: '/project/druhe/2020-05-10T05:39:00-05:42:10_all/'
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
-# timestamp_start_stop: [0, 19]
-timestamp_start_stop: [0, 17]
+timestamp_start_stop: [0, 19]
 # Indices [start, stop] that specify the location of subband in the filename.
-subband_start_stop: [19, 23]
-image_shape: [1024, 1024]
-kappa: 4.5
-detection_radius: 384
-sigmaclip_kernel_size: 64
-sigmaclip_stride: 64
+subband_start_stop: [24, 27]
+image_shape: [2300, 2300]
+kappa: 5.5
+detection_radius: 1024 
+sigmaclip_kernel_size: 100
+sigmaclip_stride: 100
 output_folder: './runs/'
 mmap_n_sources: 4096
 mmap_n_timesteps: 1024
-box_size: 12
+box_size: 16
 separation_crit: 1.5
 array_length: 64
 nn:

@@ -14,6 +14,7 @@ from lpf.quality_control import QualityControl
 
 # from lpf.statistics_estimation import StatisticsEstimator
 # from lpf.sigma_clip import SigmaClipper
+from lpf._nn import TimeFrequencyCNN
 from lpf.sigma_clip import LocalSigmaClipper
 from lpf.surveys import Survey
 from lpf.source_finder import SourceFinderMaxFilter
@@ -21,7 +22,8 @@ from lpf.running_catalog import RunningCatalog
 import time
 from collections import defaultdict
 from typing import List, Any, Callable, Union
-from types import FunctionType
+from types import FunctionType, MethodType
+import pandas as pd
 
 # from lpf.bolts.vis import plot_skymap, catalog_video
 from lpf.bolts.vis import catalog_video
@@ -58,6 +60,7 @@ class LivePulseFinder:
         # self.clipper = SigmaClipper(
         #     config["image_shape"], config["kappa"], config["detection_radius"]  # type: ignore
         # )
+        self.array_length = config["array_length"]
 
         self.clipper = LocalSigmaClipper(
             config["image_shape"],  # type: ignore
@@ -70,7 +73,7 @@ class LivePulseFinder:
         image_size: int = config["image_shape"][0]
         self.sourcefinder = SourceFinderMaxFilter(image_size)
         os.makedirs(config["output_folder"])  # type: ignore
-        monitor_length = config["array_length"] // 2  # type: ignore
+        monitor_length = self.array_length // 2  # type: ignore
         self.runningcatalog = RunningCatalog(
             config["output_folder"],  # type: ignore
             config["box_size"],  # type: ignore
@@ -80,7 +83,20 @@ class LivePulseFinder:
             separation_crit=config["separation_crit"],  # type: ignore
         )
 
+        self.nn = TimeFrequencyCNN(config["nn"])
+        self.nn.load(config["nn"]["checkpoint"])
+        self.nn.eval()
+
+        if self.cuda:
+            self.nn.set_device("cuda")
+        else:
+            self.nn.set_device("cpu")
+
         self.timings: defaultdict[str, List[float]] = defaultdict(list)
+
+        self.transient_parameters = os.path.join(
+            config["output_folder"], "parameters.csv"
+        )
 
     def _load_data(self, t: int) -> Tuple[Union[np.ndarray, torch.Tensor], WCS]:
 
@@ -101,6 +117,39 @@ class LivePulseFinder:
 
         return images, wcs
 
+    def _infer_parameters(self, x_batch):
+        x_batch_tensor = torch.from_numpy(x_batch).to(self.nn.device)[:, None]
+        with torch.no_grad():
+            predictions = self.nn(
+                (x_batch_tensor, None)
+            )  # 'None' is placeholder for the targets.
+            means, stds = predictions
+            means = means.permute(-1, -2).to("cpu").numpy()
+            stds = stds.permute(-1, -2).to("cpu").numpy()
+
+        return means, stds
+
+    def _write_to_csv(self, timestep, source_ids, means, stds):
+        dm, fluence, width, index = means
+        (dm_std,) = stds
+
+        data = {
+            'timestep': timestep,
+            "source_id": source_ids,
+            "dm": dm,
+            "dm_std": dm_std,
+            "fluence": fluence,
+            "width": width,
+            "spectral_index": index,
+        }
+
+        df = pd.DataFrame.from_dict(data, dtype=np.float32)
+        df.to_csv(
+            self.transient_parameters,
+            mode="a",
+            header=not os.path.exists(self.transient_parameters),
+        )
+
     def call(
         self,
         start_time: float,
@@ -113,7 +162,7 @@ class LivePulseFinder:
         # if self.cuda:
         # torch.cuda.synchronize()  # type: ignore
         end_time = time.time()
-        if isinstance(fn, FunctionType):
+        if isinstance(fn, (FunctionType, MethodType)):
             name: str = fn.__name__  # type: ignore
         else:
             name: str = fn.__class__.__name__
@@ -124,24 +173,30 @@ class LivePulseFinder:
     def run(self) -> None:
 
         t: int
-        length = 96
+        length = len(self.survey)
         for t in trange(length):  # type: ignore
             images, wcs = self._load_data(t)
             s = time.time()
             # Quality control
             # images:  = self.run_qc(images)
             images: Union[torch.Tensor, np.ndarray] = self.call(s, self.qc, images)
+
             # Statistics estimation.
             # intensity_map, variability_map, intensity_subtracted = self.call(
             #     s, self.statistics, images
             # )
+
             # Sigma clipping.
             peaks, _ = self.call(s, self.clipper, images)
 
             detected_sources = self.call(s, self.sourcefinder, peaks, wcs=wcs)
             self.call(s, self.runningcatalog, t, detected_sources, images)
 
-            self.runningcatalog.filter_sources_for_analysis(t, self.config["array_length"])  # type: ignore
+            source_ids, x_batch = self.call(s, self.runningcatalog.filter_sources_for_analysis, t, self.array_length)  # type: ignore
+
+            if x_batch.shape[0] > 0 and x_batch.shape[-1] == self.array_length:
+                means, stds = self.call(s, self._infer_parameters, x_batch)
+                self.call(s, self._write_to_csv, t, source_ids, means, stds)
 
             if t == length:
                 break
@@ -149,18 +204,8 @@ class LivePulseFinder:
         anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=1)
         anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
-        # source_idx = 0
-
-        # locs = []
-
-        # for i in range(length):
-        #     catitem = self.runningcatalog[i]
-        #     source = catitem[catitem["id"] == source_idx]
-        #     print(source)
-
-        # source_locations = self.runningcatalog.timesteps[0]
-
-        print(self.timings)
+        timings = {k: np.mean(self.timings[k]) for k in self.timings}
+        print(timings)
 
 
 def get_config():

@@ -44,7 +44,8 @@ class TimeFrequencyCNN(nn.Module):
     def forward(self, batch: List[torch.Tensor]):  # type: ignore
 
         input, _ = batch  # type: ignore
-        input = (input - input.mean(dim=(-1, -2))) / input.std(dim=(-1, -2))
+        print(input.shape)
+        input = (input - input.mean(dim=(-1, -2), keepdims=True)) / input.std(dim=(-1, -2), keepdims=True)
         input: torch.Tensor = torch.clamp(input, -5, 5)  # type: ignore
         output = self.nn(input.to(self.device))
         # Second output is standard deviation.
@@ -52,3 +53,7 @@ class TimeFrequencyCNN(nn.Module):
         variances = self.softplus(output[:, -1:])
 
         return means, variances
+
+    def load(self, path: str):
+        state_dict = torch.load(path)
+        self.load_state_dict(state_dict['model_state_dict'])

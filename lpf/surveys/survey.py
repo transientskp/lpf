@@ -44,6 +44,7 @@ class Survey:
     def _setup(self, path: str) -> pd.DataFrame:
 
         files = rglob(path, "*.fits")
+        assert len(files) > 0
         timestamps = []
         bands = []
         for path in files:
@@ -55,11 +56,13 @@ class Survey:
             {
                 "file": files,
                 "timestamp_str": timestamps,
-                "timestamp": pd.to_datetime(timestamps),  # type: ignore
+                "timestamp": pd.to_datetime(timestamps, errors='coerce'),  # type: ignore
                 "band": bands,
             }
-        )
-        assert len(data) > 0
+        ).dropna()
+
+
+        assert len(data) > 0, timestamps[:5]
         return data
 
     def __len__(self):
