@@ -1,0 +1,13 @@
+fits_directory: '/project/druhe/2020-05-10T05:39:00-05:42:10_all'
+# Indices [start, stop] that specify the location of the time-stamp in the filename.
+timestamp_start_stop: [0, 19]
+# Indices [start, stop] that specify the location of subband in the filename.
+subband_start_stop: [24, 27]
+output_folder: 'data/noise_a12/'
+nimages: 512
+nfreq: 16
+array_length: 64
+num_patches_per_image: 512
+radius: 1024
+image_size: 2300
+box_size: 16
