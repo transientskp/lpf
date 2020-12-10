@@ -44,7 +44,6 @@ class TimeFrequencyCNN(nn.Module):
     def forward(self, batch: List[torch.Tensor]):  # type: ignore
 
         input, _ = batch  # type: ignore
-        print(input.shape)
         input = (input - input.mean(dim=(-1, -2), keepdims=True)) / input.std(dim=(-1, -2), keepdims=True)
         input: torch.Tensor = torch.clamp(input, -5, 5)  # type: ignore
         output = self.nn(input.to(self.device))
