@@ -8,7 +8,7 @@ scripts = [
 ]
 
 setuptools.setup(
-    name="lpf-druhe",
+    name="lpf",
     version="0.0.1",
     author="David Ruhe",
     author_email="d.ruhe@uva.nl",
@@ -17,6 +17,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/transientskp/lpf",
     packages=setuptools.find_packages(),
+    scripts=scripts,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
