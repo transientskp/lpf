@@ -129,12 +129,14 @@ def collate_fn(batch):
     param_data = np.stack(param_data)
     mult_data = np.stack(noise_multiplier).astype(np.float32)
 
-    # AARTFAAC6
-    tr_data = np.concatenate([tr_data[:, :8], tr_data[:, -8:]], axis=1)
+    # AARTFAAC12
+    subbands = (0, 4, 7, 11, 14, 17, 21, 24, 28, 31, 34, 38, 41, 45, 48, 51)
+    tr_data = tr_data[:, subbands, :]
 
     noise_data = (
         noise_data - noise_data.mean(axis=(-1, -2), keepdims=True)
     ) / noise_data.std(axis=(-1, -2), keepdims=True)
+
 
     to_return = torch.from_numpy(noise_data * mult_data[:, None, None] + tr_data)
 

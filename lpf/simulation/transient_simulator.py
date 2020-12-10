@@ -12,7 +12,7 @@ class Telescope:
     ):
 
         n_bands = int((frequency_range[1] - frequency_range[0]) // df)
-        self.frequencies: np.ndarray = np.linspace(*frequency_range, n_bands)  # type: ignore
+        self.frequencies: np.ndarray = np.linspace(*frequency_range, n_bands + 1)  # type: ignore
         self.array_length = array_length
         self.dt: float = dt
 
