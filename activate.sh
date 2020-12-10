@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ENV_DIR='.venv/'
+ENV_DIR='.venv'
 
 if [[ ! -d $ENV_DIR ]]
 then
