@@ -81,14 +81,14 @@ class CustomTransientDataset(Dataset):  # type: ignore
         self,
         transient_path,
         parameter_path,
-        noise_multiplier_min_max,
+        noise_multiplier,
         noise_path=None,
     ):
         super(CustomTransientDataset, self).__init__()
 
         self.transient_mmap = open_memmap(transient_path, mode="r")
         self.parameter_mmap = open_memmap(parameter_path, mode="r")
-        self.noise_multiplier_min_max = noise_multiplier_min_max
+        self.noise_multiplier = noise_multiplier
         if noise_path is not None:
             self.noise_mmap = open_memmap(noise_path, mode="r")
             self.noise_len = len(self.noise_mmap)
@@ -110,12 +110,11 @@ class CustomTransientDataset(Dataset):  # type: ignore
             noise_data = self.noise_mmap[noise_index]
         else:
             noise_data = np.random.randn_like(tr_data)
-        noise_multiplier = random.uniform(*self.noise_multiplier_min_max)
         return (
             tr_data.astype(np.float32),
             noise_data.astype(np.float32),
             param_data.astype(np.float32),
-            noise_multiplier
+            self.noise_multiplier
         )
 
     def __len__(self):
@@ -148,7 +147,7 @@ def load_data(config, train_split=0.7, val_split=0.2):
     dataset = CustomTransientDataset(
         config["transient_path"],
         config["parameter_path"],
-        config["noise_multiplier_min_max"],
+        config["noise_multiplier"],
         config["noise_path"],
     )
     train_len = int(train_split * len(dataset))

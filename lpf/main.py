@@ -21,7 +21,7 @@ from lpf.source_finder import SourceFinderMaxFilter
 from lpf.running_catalog import RunningCatalog
 import time
 from collections import defaultdict
-from typing import List, Any, Callable, Union
+from typing import List, Any, Callable, Union, Dict
 from types import FunctionType, MethodType
 import pandas as pd
 
@@ -60,7 +60,7 @@ class LivePulseFinder:
         # self.clipper = SigmaClipper(
         #     config["image_shape"], config["kappa"], config["detection_radius"]  # type: ignore
         # )
-        self.array_length = config["array_length"]
+        self.array_length: int = config["array_length"]
 
         self.clipper = LocalSigmaClipper(
             config["image_shape"],  # type: ignore
@@ -83,8 +83,8 @@ class LivePulseFinder:
             separation_crit=config["separation_crit"],  # type: ignore
         )
 
-        self.nn = TimeFrequencyCNN(config["nn"])
-        self.nn.load(config["nn"]["checkpoint"])
+        self.nn = TimeFrequencyCNN(config["nn"])  # type: ignore
+        self.nn.load(config["nn"]["checkpoint"])  # type: ignore
         self.nn.eval()
 
         if self.cuda:
@@ -95,7 +95,7 @@ class LivePulseFinder:
         self.timings: defaultdict[str, List[float]] = defaultdict(list)
 
         self.transient_parameters = os.path.join(
-            config["output_folder"], "parameters.csv"
+            config["output_folder"], "parameters.csv"  # type: ignore
         )
 
     def _load_data(self, t: int) -> Tuple[Union[np.ndarray, torch.Tensor], WCS]:
@@ -117,8 +117,8 @@ class LivePulseFinder:
 
         return images, wcs
 
-    def _infer_parameters(self, x_batch):
-        x_batch_tensor = torch.from_numpy(x_batch).to(self.nn.device)[:, None]
+    def _infer_parameters(self, x_batch: np.ndarray):
+        x_batch_tensor = torch.from_numpy(x_batch).to(self.nn.device)[:, None]  # type: ignore
         with torch.no_grad():
             predictions = self.nn(
                 (x_batch_tensor, None)
@@ -129,7 +129,7 @@ class LivePulseFinder:
 
         return means, stds
 
-    def _write_to_csv(self, timestep, source_ids, means, stds):
+    def _write_to_csv(self, timestep: int, source_ids: np.ndarray, means: np.ndarray, stds: np.ndarray) -> None:
         dm, fluence, width, index = means
         (dm_std,) = stds
 
@@ -143,7 +143,7 @@ class LivePulseFinder:
             "spectral_index": index,
         }
 
-        df = pd.DataFrame.from_dict(data, dtype=np.float32)
+        df = pd.DataFrame.from_dict(data, dtype=np.float32)  # type: ignore
         df.to_csv(
             self.transient_parameters,
             mode="a",
@@ -196,7 +196,7 @@ class LivePulseFinder:
 
             if x_batch.shape[0] > 0 and x_batch.shape[-1] == self.array_length:
                 means, stds = self.call(s, self._infer_parameters, x_batch)
-                self.call(s, self._write_to_csv, t, source_ids, means, stds)
+                self.call(s, self._write_to_csv, t, source_ids, means, stds)  # type: ignore
 
             if t == length:
                 break
@@ -204,7 +204,7 @@ class LivePulseFinder:
         anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=1)
         anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
-        timings = {k: np.mean(self.timings[k]) for k in self.timings}
+        timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
         print(timings)
 
 

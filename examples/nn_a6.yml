@@ -28,6 +28,6 @@ data:
   transient_path: 'data/transient_sim/data.npy'
   parameter_path: 'data/transient_sim/parameters.npy'
   noise_path: 'data/noise/noise.npy'
-  noise_multiplier_min_max: [0, 0.1]
+  noise_multiplier: 0.1 
   batch_size: 16
   num_workers: 4 

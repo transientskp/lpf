@@ -41,17 +41,18 @@ class Trainer:
         self, result: Dict["str", Union[float, Any]], divider: str, index: int
     ):
         for k in result:
-            if isinstance(result[k], (torch.Tensor, np.ndarray, float, int, np.int, np.float)):
+            k: str
+            if isinstance(result[k], (torch.Tensor, np.ndarray, float, int, np.int, np.float)):  # type: ignore
                 self.writer.add_scalar(f"{k}/{divider}", result[k], index)  # type: ignore
             elif isinstance(result[k], plt.Figure):
                 self.writer.add_figure(f"examples/{divider}", result[k], index)  # type: ignore
 
-    def save_model(self, path):
-        torch.save(
+    def save_model(self, path: str):
+        torch.save(  # type: ignore
             {
                 "epoch": self.current_epoch,
                 "model_state_dict": self.model.state_dict(),
-                "optimizer_state_dict": self.optim.state_dict(),
+                "optimizer_state_dict": self.optim.state_dict(),  # type: ignore
             },
             path,
         )
@@ -153,7 +154,7 @@ class Trainer:
             if self.writer:
                 self.save_model(
                     os.path.join(
-                        self.writer.log_dir,
+                        self.writer.log_dir,  # type: ignore
                         f"epoch_{self.current_epoch}.ckpt",
                     ),
                 )
