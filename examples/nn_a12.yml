@@ -3,11 +3,11 @@ device: 'cuda'
 nn:
   architecture: [
       # ['conv', in_channels, out_channels, kernel_size, stride, padding]
-      ["conv", 1, 8, 1, [1, 2], 0],
+      ["conv", 1, 8, 1, [1, 1], 0],
       ["act"],
       ["conv", 8, 16, 3, [1, 2], 1],
       ["act"],
-      ["conv", 16, 32, 3, [2, 2], 1],
+      ["conv", 16, 32, 3, [1, 2], 1],
       ["act"],
       ["conv", 32, 64, 3, [2, 2], 1],
       ["act"],
@@ -15,10 +15,13 @@ nn:
       ["act"],
       ["conv", 128, 256, 3, [2, 2], 1],
       ["act"],
+      ["conv", 256, 512, 3, [2, 2], 1],
+      ["act"],
+      ["act"],
       ["flatten"],
       ["act"],
       # ['linear', in_features, out_features]
-      ["linear", 256, 5],
+      ["linear", 512, 5],
     ]
 trainer:
   lr: 0.001

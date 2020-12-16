@@ -9,6 +9,7 @@ from astropy.table import Table  # type: ignore
 import numpy as np
 from astropy.io import ascii, fits  # type: ignore
 import datetime
+from skimage.transform import resize
 
 
 class SurveySimulator:
@@ -38,7 +39,9 @@ class SurveySimulator:
             # f = os.path.join(self.output_dir, f"{t:03}.npy")
 
             im: np.ndarray
+            print('hi')
             sky = np.float32(self.skysim(self.catalog))
+            print('hi')
             for band, im in enumerate(sky):  # type: ignore
                 band_str = f'S{band:03}'
                 output_dir = os.path.join(self.output_dir, band_str)
@@ -48,10 +51,13 @@ class SurveySimulator:
                 filename = f'{t_str}-{band_str}.fits'
                 filename = os.path.join(output_dir, filename)
 
-                print(filename)
+
+                # template: np.ndarray = resize(self.template, [1, 1, *im.shape])
 
 
-                data = self.template * 0 + im[None, None] 
+                # data = template * 0 + im[None, None] 
+                data = im[None, None]
+
 
                 hdu = fits.PrimaryHDU(data, header=self.header)
                 hdu.writeto(filename)  # type: ignore

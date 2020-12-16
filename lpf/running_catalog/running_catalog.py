@@ -41,7 +41,7 @@ class RunningCatalog:
 
         # To keep track of the detected sources in each time-step.
         self.timesteps = [detected_sources]
-        self.image_cache = [images]
+        self.image_cache = [images.cpu()]
         # Storing source metadata.
         columns = ("start_t", "last_measured")
         meta = np.zeros([len(detected_sources), 2], dtype=int)
@@ -233,7 +233,7 @@ class RunningCatalog:
         self.timesteps.append(curr)
 
         self.image_cache: List[tensor_or_ndarray]
-        self.image_cache.append(images)
+        self.image_cache.append(images.cpu())
         self.image_cache = self.image_cache[-self.monitor_length:]
 
     def filter_sources_for_analysis(self, t: int, length: int):

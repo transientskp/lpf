@@ -5,14 +5,19 @@ import numpy as np
 from lpf.bolts.math import create_circular_mask
 
 
-def local_sigma_clip(to_clip: torch.Tensor, kappa: float) -> List[torch.Tensor]:
+def local_sigma_clip(to_clip: torch.Tensor, kappa: float, center_fn: str='median') -> List[torch.Tensor]:
 
     islands = torch.zeros_like(to_clip).float()
 
     while True:
-        mean: torch.Tensor = to_clip.mean(1, keepdims=True)  # type: ignore
+        if center_fn == 'median':
+            center: torch.Tensor = torch.median(to_clip, dim=1, keepdim=True)[0]
+        elif center_fn == 'mean':
+            center: torch.Tensor = to_clip.mean(1, keepdims=True)  # type: ignore
+        else:
+            raise ValueError(f"Unknown center function {center_fn}")
         std: torch.Tensor = to_clip.std(1, keepdims=True)  # type: ignore
-        thresholds = mean + kappa * std
+        thresholds = center + kappa * std
         # There might an approach more elegant than this for cases where the local peak
         # is lesser than zero.
         thresholds[thresholds < 0] = 0

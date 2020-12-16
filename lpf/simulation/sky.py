@@ -31,6 +31,8 @@ class SkySimulator:
         self.n_channels = n_channels
         self.rfi_multiplier: float = rfi_multiplier
 
+        self.sky = None
+
     def sample_source_locations(self, n_sources: int) -> table.Table:
         image_center = self.size // 2
         a = np.random.rand(n_sources) * 2 * np.pi
@@ -67,24 +69,28 @@ class SkySimulator:
 
         intensity_map = self.load_intensity_map()
 
-        sky = (
-            np.random.randn(self.n_channels, *intensity_map.shape)
-            + self.intensity_map_multiplier * intensity_map[None, ...]
-        )
+        if self.sky is None:
+            sky = (
+                np.random.randn(self.n_channels, *intensity_map.shape)
+                + self.intensity_map_multiplier * intensity_map[None, ...]
+            )
 
-        if rfi:
-            rfi_index = np.random.randint(0, self.n_channels)
+            if rfi:
+                rfi_index = np.random.randint(0, self.n_channels)
+            else:
+                rfi_index = None
+
+            for i, im in enumerate(sky):
+                im[tuple(catalog[["x_peak", "y_peak"]].values())] = catalog["int_flux"]  # type: ignore
+
+                if i == rfi_index:
+                    loc = self.sample_source_locations(1)
+                    im[tuple(loc[["x_peak", "y_peak"]].values())] = 4 * self.n_channels * np.max(catalog["int_flux"])  # type: ignore
+
+            sky: np.ndarray = fftconvolve(sky, self.psf[None, ...], mode="same", axes=(1, 2))  # type: ignore
+            self.sky = sky
         else:
-            rfi_index = None
-
-        for i, im in enumerate(sky):
-            im[tuple(catalog[["x_peak", "y_peak"]].values())] = catalog["int_flux"]  # type: ignore
-
-            if i == rfi_index:
-                loc = self.sample_source_locations(1)
-                im[tuple(loc[["x_peak", "y_peak"]].values())] = 4 * self.n_channels * np.max(catalog["int_flux"])  # type: ignore
-
-        sky: np.ndarray = fftconvolve(sky, self.psf[None, ...], mode="same", axes=(1, 2))  # type: ignore
+            sky = self.sky
         return sky # type: ignore
 
     def __call__(self, *args, **kwargs):  # type: ignore

@@ -13,3 +13,4 @@ scipy
 tqdm
 PyYAML
 pandas
+scikit-image

@@ -1,33 +1,31 @@
+import os
+import pickle
 import sys
+import time
 import warnings
-from typing import List, Tuple, Union
+from collections import defaultdict
+from types import FunctionType, MethodType
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import astropy.io.fits  # type: ignore
 import numpy as np
+import pandas as pd
 import torch
 import yaml
 from astropy.utils.exceptions import AstropyWarning  # type: ignore
 from astropy.wcs import WCS  # type: ignore
 from tqdm import trange  # type: ignore
 
-from lpf.quality_control import QualityControl
-
 # from lpf.statistics_estimation import StatisticsEstimator
 # from lpf.sigma_clip import SigmaClipper
 from lpf._nn import TimeFrequencyCNN
-from lpf.sigma_clip import LocalSigmaClipper
-from lpf.surveys import Survey
-from lpf.source_finder import SourceFinderMaxFilter
-from lpf.running_catalog import RunningCatalog
-import time
-from collections import defaultdict
-from typing import List, Any, Callable, Union, Dict
-from types import FunctionType, MethodType
-import pandas as pd
-
 # from lpf.bolts.vis import plot_skymap, catalog_video
 from lpf.bolts.vis import catalog_video
-import os
+from lpf.quality_control import QualityControl
+from lpf.running_catalog import RunningCatalog
+from lpf.sigma_clip import LocalSigmaClipper
+from lpf.source_finder import SourceFinderMaxFilter
+from lpf.surveys import Survey
 
 warnings.simplefilter("ignore", category=AstropyWarning)
 
@@ -119,22 +117,23 @@ class LivePulseFinder:
 
     def _infer_parameters(self, x_batch: np.ndarray):
         x_batch_tensor = torch.from_numpy(x_batch).to(self.nn.device)[:, None]  # type: ignore
-        with torch.no_grad():
-            predictions = self.nn(
-                (x_batch_tensor, None)
-            )  # 'None' is placeholder for the targets.
-            means, stds = predictions
-            means = means.permute(-1, -2).to("cpu").numpy()
-            stds = stds.permute(-1, -2).to("cpu").numpy()
+        predictions = self.nn(
+            (x_batch_tensor, None)
+        )  # 'None' is placeholder for the targets.
+        means, stds = predictions
+        means = means.permute(-1, -2).to("cpu").numpy()
+        stds = stds.permute(-1, -2).to("cpu").numpy()
 
         return means, stds
 
-    def _write_to_csv(self, timestep: int, source_ids: np.ndarray, means: np.ndarray, stds: np.ndarray) -> None:
+    def _write_to_csv(
+        self, timestep: int, source_ids: np.ndarray, means: np.ndarray, stds: np.ndarray
+    ) -> None:
         dm, fluence, width, index = means
         (dm_std,) = stds
 
         data = {
-            'timestep': timestep,
+            "timestep": timestep,
             "source_id": source_ids,
             "dm": dm,
             "dm_std": dm_std,
@@ -159,8 +158,8 @@ class LivePulseFinder:
     ) -> Any:
 
         result = fn(*args, **kwargs)
-        # if self.cuda:
-        # torch.cuda.synchronize()  # type: ignore
+        if self.cuda:
+            torch.cuda.synchronize()  # type: ignore
         end_time = time.time()
         if isinstance(fn, (FunctionType, MethodType)):
             name: str = fn.__name__  # type: ignore
@@ -174,38 +173,42 @@ class LivePulseFinder:
 
         t: int
         length = len(self.survey)
-        for t in trange(length):  # type: ignore
-            images, wcs = self._load_data(t)
-            s = time.time()
-            # Quality control
-            # images:  = self.run_qc(images)
-            images: Union[torch.Tensor, np.ndarray] = self.call(s, self.qc, images)
+        length = 80
+        with torch.no_grad():
+            for t in trange(length):  # type: ignore
+                images, wcs = self._load_data(t)
+                s = time.time()
+                # Quality control
+                # images:  = self.run_qc(images)
+                images: Union[torch.Tensor, np.ndarray] = self.call(s, self.qc, images)
 
-            # Statistics estimation.
-            # intensity_map, variability_map, intensity_subtracted = self.call(
-            #     s, self.statistics, images
-            # )
+                # Statistics estimation.
+                # intensity_map, variability_map, intensity_subtracted = self.call(
+                #     s, self.statistics, images
+                # )
 
-            # Sigma clipping.
-            peaks, _ = self.call(s, self.clipper, images)
+                # Sigma clipping.
+                peaks, _ = self.call(s, self.clipper, images)
 
-            detected_sources = self.call(s, self.sourcefinder, peaks, wcs=wcs)
-            self.call(s, self.runningcatalog, t, detected_sources, images)
+                detected_sources = self.call(s, self.sourcefinder, peaks, wcs=wcs)
+                self.call(s, self.runningcatalog, t, detected_sources, images)
 
-            source_ids, x_batch = self.call(s, self.runningcatalog.filter_sources_for_analysis, t, self.array_length)  # type: ignore
+                source_ids, x_batch = self.call(s, self.runningcatalog.filter_sources_for_analysis, t, self.array_length)  # type: ignore
 
-            if x_batch.shape[0] > 0 and x_batch.shape[-1] == self.array_length:
-                means, stds = self.call(s, self._infer_parameters, x_batch)
-                self.call(s, self._write_to_csv, t, source_ids, means, stds)  # type: ignore
+                if x_batch.shape[0] > 0 and x_batch.shape[-1] == self.array_length:
+                    means, stds = self.call(s, self._infer_parameters, x_batch)
+                    self.call(s, self._write_to_csv, t, source_ids, means, stds)  # type: ignore
 
-            if t == length:
-                break
+                if t == length:
+                    break
 
-        anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=1)
-        anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
+        # anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=1)
+        # anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
-        timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
-        print(timings)
+        # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
+        # print(timings)
+        with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
+            pickle.dump(self.timings, f)  
 
 
 def get_config():

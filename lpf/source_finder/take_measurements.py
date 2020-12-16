@@ -7,6 +7,7 @@ import numpy as np
 def take_measurements(detected_sources, images, box_size) -> Table:
     # Take measurements
     measurements = []
+
     for i in range(len(detected_sources)):
         x = detected_sources["x_peak"][i]
         y = detected_sources["y_peak"][i]

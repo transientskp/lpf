@@ -3,9 +3,9 @@ frequency_range: [54882812.5, 64843750.0]
 df: 195312.5
 dt: 1
 nparams: 4
-dm_range: [0, 256]
+dm_range: [0, 1024]
 fluence_range: [0.0, 1.0]
 width_range: [0, 16]
 spec_ind_range: [-4, 4]
-output_folder: 'data/transient_sim/'
-nevents: 16384
+output_folder: 'data/transient_sim/a12'
+nevents: 32768
