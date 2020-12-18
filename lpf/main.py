@@ -127,21 +127,31 @@ class LivePulseFinder:
         return means, stds
 
     def _write_to_csv(
-        self, timestep: int, source_ids: np.ndarray, means: np.ndarray, stds: np.ndarray
+        self, timestep: int, runcat_t: np.ndarray, means: np.ndarray, stds: np.ndarray
     ) -> None:
         dm, fluence, width, index = means
         (dm_std,) = stds
-
+        
         data = {
             "timestep": timestep,
-            "source_id": source_ids,
+            "source_id": runcat_t['id'],
+            "ra": runcat_t['coordinate'].ra.deg,
+            "dec": runcat_t['coordinate'].dec.deg,
+            "x_peak": runcat_t['x_peak'],
+            'y_peak': runcat_t['y_peak'],
+            'last_detected': runcat_t['last_detected'],
+            'is_monitored': runcat_t['is_monitored'],
+            'is_backward_fill': runcat_t['is_backward_fill'],
+            'is_new_source': runcat_t['new_source'],
+            'channel': runcat_t['channel'],
+            "peak_flux": runcat_t['peak_flux'].max(),
             "dm": dm,
             "dm_std": dm_std,
             "fluence": fluence,
             "width": width,
             "spectral_index": index,
         }
-
+        
         df = pd.DataFrame.from_dict(data, dtype=np.float32)  # type: ignore
         df.to_csv(
             self.transient_parameters,
@@ -173,19 +183,17 @@ class LivePulseFinder:
 
         t: int
         length = len(self.survey)
-        length = 80
         with torch.no_grad():
             for t in trange(length):  # type: ignore
                 images, wcs = self._load_data(t)
                 s = time.time()
                 # Quality control
-                # images:  = self.run_qc(images)
                 images: Union[torch.Tensor, np.ndarray] = self.call(s, self.qc, images)
 
                 # Statistics estimation.
-                # intensity_map, variability_map, intensity_subtracted = self.call(
-                #     s, self.statistics, images
-                # )
+#                 intensity_map, variability_map, intensity_subtracted = self.call(
+#                     s, self.statistics, images
+#                 )
 
                 # Sigma clipping.
                 peaks, _ = self.call(s, self.clipper, images)
@@ -193,22 +201,26 @@ class LivePulseFinder:
                 detected_sources = self.call(s, self.sourcefinder, peaks, wcs=wcs)
                 self.call(s, self.runningcatalog, t, detected_sources, images)
 
-                source_ids, x_batch = self.call(s, self.runningcatalog.filter_sources_for_analysis, t, self.array_length)  # type: ignore
+                runcat_t, x_batch = self.call(s, self.runningcatalog.filter_sources_for_analysis, t, self.array_length)  # type: ignore
 
                 if x_batch.shape[0] > 0 and x_batch.shape[-1] == self.array_length:
                     means, stds = self.call(s, self._infer_parameters, x_batch)
-                    self.call(s, self._write_to_csv, t, source_ids, means, stds)  # type: ignore
+                    self.call(s, self._write_to_csv, t, runcat_t, means, stds)  # type: ignore
 
                 if t == length:
                     break
 
-        # anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=1)
-        # anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
+#         anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=0.5)
+#         anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
         # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
         # print(timings)
         with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
             pickle.dump(self.timings, f)  
+            
+        with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore
+            pickle.dump(self.runningcatalog, f)  
+        
 
 
 def get_config():

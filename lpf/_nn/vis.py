@@ -1,6 +1,44 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from astropy.wcs.utils import skycoord_to_pixel
+import torch
 
+def plot_skymap(image, skycoord=None, wcs=None, n_std=None, reverse=False, c='red'):
+
+    if skycoord is not None:
+        pixels = list(skycoord_to_pixel(skycoord, wcs))
+
+        if reverse:
+            y, x = pixels[0], pixels[1]
+            pixels[0] = x
+            pixels[1] = y
+
+    if isinstance(image, torch.Tensor):
+        image = image.to('cpu').numpy()
+
+    image = image.squeeze()
+
+    fig = plt.figure(figsize=(16, 16))
+    if n_std:
+        mean = np.nanmean(image)
+        std = np.nanstd(image)
+        plt.imshow(image, vmin=mean - n_std * std, vmax=mean + n_std * std, cmap='viridis')
+    else:
+        plt.imshow(image, cmap='viridis')
+
+    plt.colorbar(orientation="horizontal", fraction=0.046, pad=0.04)
+
+    if skycoord is not None:
+        plt.scatter(
+            pixels[0],
+            pixels[1],
+            s=128,
+            edgecolor=c,
+            facecolor="none",
+            lw=1,
+        )
+
+    return fig
 
 # def plot_batch_of_images(
 #     images,
@@ -122,6 +160,16 @@ def plot_batch_of_images(
     # images = torch.randn(5, 1, 32, 64)
     # labels = torch.randn(5)
     # predictions = torch.randn(5)
+    images = images[:16]
+    dm_pred = dm_pred[:16]
+    dm_std = dm_std[:16]
+    dm_t = dm_t[:16]
+    fluence_pred = fluence_pred[:16]
+    fluence_t = fluence_t[:16]
+    width_pred = width_pred[:16]
+    width_t = width_t[:16]
+    spectral_index_pred = spectral_index_pred[:16]
+    spectral_index_t = spectral_index_t[:16]
 
     def previous_perfect_square(n):
         return np.floor(np.sqrt(n)) ** 2
@@ -172,6 +220,7 @@ def plot_batch_of_images(
     for i, ax in enumerate(axes.flat):
 
         ax_imshow(ax, images[i])
+        
 
         title_str = (
             f"DM: {dm_t[i].item():.2f} | Prediction: {dm_pred[i].item():.2f} $\pm$ {dm_std[i].item():.2f} \n"

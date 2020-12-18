@@ -16,9 +16,9 @@ N_CHANNELS = 16
 BEAM_WIDTH = np.pi / 6
 INTENSITY_MAP = "data/intensity_maps/1024x1024.npy"
 INTENSITY_MULTIPLIER = 8e-2
-N_IMAGES = 8
-MU = -0.6
-SIGMA = 1.5
+N_IMAGES = 256
+MU = 1.4
+SIGMA = 1.1
 N_SOURCES = IM_SIZE ** 2 // 1024
 OUTPUT_DIR = f"data/rfi_detection/{IM_SIZE}x{IM_SIZE}"
 

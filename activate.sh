@@ -13,4 +13,6 @@ else
     source $ENV_DIR/bin/activate
 fi
 
-export PYTHONPATH='.'
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+export PYTHONPATH=$DIR
+export JUPYTER_PATH=$DIR

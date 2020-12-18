@@ -5,3 +5,4 @@ data/
 runs/
 *.ipynb
 experiments/
+.ipynb_checkpoints/

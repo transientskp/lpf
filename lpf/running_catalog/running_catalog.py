@@ -96,7 +96,8 @@ class RunningCatalog:
         )
         matched_sources: table.Table = detected_sources[~sep_crit][unique_matched_source_idx]  # type: ignore
         matched_sources["id"] = prev[matched_source_ids]["id"].copy()  # type: ignore
-        matched_sources["new_source"] = False
+        if len(matched_sources) > 0:
+            matched_sources["new_source"] = False
 
         if len(new_sources) > 0:
             curr: table.Table = table.vstack([matched_sources, new_sources])  # type: ignore
@@ -167,7 +168,10 @@ class RunningCatalog:
         if len(to_monitor) > 0:
             to_monitor["is_monitored"] = True
             to_monitor["new_source"] = False
-            curr = table.vstack([curr, to_monitor])  # type: ignore
+            if len(curr) > 0:
+                curr = table.vstack([curr, to_monitor])  # type: ignore
+            else:
+                curr = to_monitor
 
         return curr
 
@@ -194,9 +198,11 @@ class RunningCatalog:
 
         detected_sources = filter_nan(detected_sources)
         # detected_sources = filter_duplicates(detected_sources)
-        detected_sources["last_detected"] = t
-        detected_sources["is_monitored"] = False
-        detected_sources["is_backward_fill"] = False
+
+        if len(detected_sources) > 0:
+            detected_sources["last_detected"] = t
+            detected_sources["is_monitored"] = False
+            detected_sources["is_backward_fill"] = False
         # Run initialization on first time-step.
         if self.ns_id == None:
             print("Initializing catalog.")
@@ -205,8 +211,10 @@ class RunningCatalog:
         # Otherwise, main loop.
         # Load previous timestep's source table.
         prev: table.Table = self.timesteps[-1]
+
         # Get current time-step's source-table.
         curr = self._match_sources(t, prev, detected_sources)  # type: ignore
+
 
         # Add sources to monitor.
         curr = self._monitor_sources(t, prev, curr)
@@ -237,12 +245,17 @@ class RunningCatalog:
         self.image_cache = self.image_cache[-self.monitor_length:]
 
     def filter_sources_for_analysis(self, t: int, length: int):
-        lengths: pd.Series = self.meta['last_measured'] - self.meta['start_t']  # type: ignore
-        ready_for_analysis: pd.Series = (self.meta['last_measured'] == t) & (lengths > length)  # type: ignore
-        source_ids, = ready_for_analysis.to_numpy().nonzero()  # Unpacked since .nonzero() returns tuple.
-        x_batch = self.flux_data[source_ids, :, t - length: t]
-        print(f"Neural network input shape: {x_batch.shape}")
-        return source_ids, x_batch
+        
+        runcat_t = self.timesteps[t]
+        lengths = (t - self.meta.iloc[runcat_t['id']]['start_t']).values
+        
+        runcat_t = runcat_t[lengths >= length]
+        
+        flux_arrays = self.flux_data[runcat_t['id'], :, t - length: t]
+        
+        print(f"Neural network input shape: {flux_arrays.shape}")
+        return runcat_t, flux_arrays
+        
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
         return self.add_timestep(*args, **kwargs)

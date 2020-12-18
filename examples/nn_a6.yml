@@ -28,9 +28,9 @@ trainer:
   epochs: 32
 
 data:
-  transient_path: 'data/transient_sim/a6/data.npy'
-  parameter_path: 'data/transient_sim/a6/parameters.npy'
-  noise_path: 'data/noise/noise.npy'
-  noise_multiplier: 0.1 
-  batch_size: 16
+  transient_path: '/home/druhe/release/lpf/data/transient_sim/a6/data.npy'
+  parameter_path: '/home/druhe/release/lpf/data/transient_sim/a6/parameters.npy'
+  noise_path: '/home/druhe/release/lpf/data/noise/noise.npy'
+  noise_multiplier: 1 
+  batch_size: 64
   num_workers: 4 

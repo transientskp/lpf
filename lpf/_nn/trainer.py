@@ -24,6 +24,7 @@ class Trainer:
         train_loader: DataLoader,  # type: ignore
         val_loader: DataLoader,  # type: ignore
         test_loader: DataLoader,  # type: ignore
+        early_stopping_patience: int = 5,
     ) -> None:
         super().__init__()
         self.optim = Adam(model.parameters(), config["lr"])  # type: ignore
@@ -36,6 +37,10 @@ class Trainer:
         self.output_folder = output_folder
         self.writer = tensorboard.SummaryWriter(output_folder)
         self.best_val_loss = float('inf')
+        self.early_stopping_patience = early_stopping_patience
+        self.patience = early_stopping_patience
+
+        self.is_training: bool = True
 
     def handle_log(
         self, result: Dict["str", Union[float, Any]], divider: str, index: int
@@ -158,12 +163,16 @@ class Trainer:
                         f"epoch_{self.current_epoch}.ckpt",
                     ),
                 )
+            self.patience = self.early_stopping_patience
+
+        elif self.patience > 0:
+            self.patience -= 1
         else:
             print(
                 f"Early stopping reached at validation loss "
                 f"{self.best_val_loss:.3f}"
             )
-            print("Warning, early stopping disabled.")
+            self.is_training = False
 
         self.current_epoch += 1
 
@@ -172,7 +181,7 @@ class Trainer:
         print("Testing validation routine.")
         self.validate(num_iterations=1)
 
-        for _ in range(self.epochs):
-
+        # for _ in range(self.epochs):
+        while self.is_training:
             self.train()
             self.validate()

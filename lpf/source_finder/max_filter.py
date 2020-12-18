@@ -15,6 +15,8 @@ class SourceFinderMaxFilter:
     def __call__(
         self, peaks: Union[np.ndarray, torch.Tensor], wcs: Union[None, WCS] = None
     ) -> Table:
+        
+        assert len(peaks.shape) == 3
 
         maxima: Union[np.ndarray, torch.Tensor]
         peaks_mask: Union[np.ndarray, torch.Tensor]
@@ -59,7 +61,7 @@ class SourceFinderMaxFilter:
         table = Table(coldata, names=colnames)
 
         if wcs is not None:
-            skycoord_peaks = pixel_to_skycoord(x_locs, y_locs, wcs, origin=0)
+            skycoord_peaks = pixel_to_skycoord(y_locs, x_locs, wcs, origin=0)
             table.add_column(skycoord_peaks, name="coordinate")  # type: ignore
 
         return table

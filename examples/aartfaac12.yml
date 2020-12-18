@@ -5,15 +5,15 @@ timestamp_start_stop: [0, 19]
 # Indices [start, stop] that specify the location of subband in the filename.
 subband_start_stop: [24, 27]
 image_shape: [2300, 2300]
-kappa: 5.5
+kappa: 5
 detection_radius: 1024 
 sigmaclip_kernel_size: 100
-sigmaclip_stride: 100
+sigmaclip_stride: 25
 output_folder: './runs/'
 mmap_n_sources: 4096
 mmap_n_timesteps: 1024
 box_size: 16
-separation_crit: 1.5
+separation_crit: 1.
 array_length: 64
 nn:
   checkpoint: '/home/druhe/release/lpf/data/nn/epoch_29.ckpt'

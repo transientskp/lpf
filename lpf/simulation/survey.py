@@ -39,9 +39,7 @@ class SurveySimulator:
             # f = os.path.join(self.output_dir, f"{t:03}.npy")
 
             im: np.ndarray
-            print('hi')
             sky = np.float32(self.skysim(self.catalog))
-            print('hi')
             for band, im in enumerate(sky):  # type: ignore
                 band_str = f'S{band:03}'
                 output_dir = os.path.join(self.output_dir, band_str)

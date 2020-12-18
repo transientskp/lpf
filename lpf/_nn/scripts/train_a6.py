@@ -18,14 +18,8 @@ from lpf._nn.vis import plot_batch_of_images
 torch.autograd.set_detect_anomaly(True)
 
 
-def get_config():
+def get_config(config_path):
 
-    cmd = sys.argv
-    if len(cmd) != 2:
-        raise ValueError(
-            f"Please provide path to config file. Example: train.py /path/to/config.yml"
-        )
-    config_path = sys.argv[1]
     with open(config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)  # type: ignore
     return config
@@ -163,7 +157,14 @@ def load_data(config, train_split=0.7, val_split=0.2):
 
 
 def main():
-    config = get_config()
+    cmd = sys.argv
+    if len(cmd) != 2:
+        raise ValueError(
+            f"Please provide path to config file. Example: train.py /path/to/config.yml"
+        )
+    config_path = sys.argv[1]
+
+    config = get_config(config_path)
     output_folder = config['output_folder']
     os.makedirs(output_folder)
     shutil.copy(sys.argv[1], output_folder)

@@ -5,7 +5,7 @@ import numpy as np
 from lpf.bolts.math import create_circular_mask
 
 
-def local_sigma_clip(to_clip: torch.Tensor, kappa: float, center_fn: str='median') -> List[torch.Tensor]:
+def local_sigma_clip(to_clip: torch.Tensor, kappa: float, center_fn: str='mean') -> List[torch.Tensor]:
 
     islands = torch.zeros_like(to_clip).float()
 
@@ -44,12 +44,15 @@ class LocalSigmaClipper:
         assert image_shape[0] % kernel_size == 0
 
     def __call__(self, images: Union[torch.Tensor, np.ndarray]) -> List[Union[np.ndarray, torch.Tensor]]:
+
+        assert len(images.shape) == 3
         if isinstance(images, torch.Tensor):
             to_clip = images.clone()
 
         else:
             to_clip: torch.Tensor = torch.from_numpy(images).float()  # type: ignore
 
+        
         to_clip[:, ~self.mask] = float("nan")
 
         to_clip = self.unfolder(to_clip[:, None])
@@ -58,9 +61,9 @@ class LocalSigmaClipper:
 
         for i in range(len(output)):
             if isinstance(images, np.ndarray):
-                output[i] = self.folder(output[i].float()).numpy().squeeze()
+                output[i] = self.folder(output[i].float()).numpy().squeeze(1)
             else:
-                output[i] = self.folder(output[i].float()).squeeze()
+                output[i] = self.folder(output[i].float()).squeeze(1)
 
         return output  # type: ignore
 
