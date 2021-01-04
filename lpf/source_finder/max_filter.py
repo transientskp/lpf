@@ -6,14 +6,14 @@ import torch
 from astropy.table import Table  # type: ignore
 from astropy.wcs import WCS  # type: ignore
 from astropy.wcs.utils import pixel_to_skycoord  # type: ignore
-
+from lpf.bolts.math import create_circular_mask
 
 class SourceFinderMaxFilter:
     def __init__(self, image_size: int):
         self.maxfilter_torch = MaxFilter(image_size)
 
     def __call__(
-        self, peaks: Union[np.ndarray, torch.Tensor], wcs: Union[None, WCS] = None
+        self, images, peaks: Union[np.ndarray, torch.Tensor], wcs: Union[None, WCS] = None
     ) -> Table:
         
         assert len(peaks.shape) == 3
@@ -21,28 +21,17 @@ class SourceFinderMaxFilter:
         maxima: Union[np.ndarray, torch.Tensor]
         peaks_mask: Union[np.ndarray, torch.Tensor]
 
-        if isinstance(peaks, torch.Tensor):
-            maxima = self.maxfilter_torch(peaks[:, None]).squeeze(1)
-            peaks_mask = (maxima == peaks) & (peaks > 0)
-            peak_locs = peaks_mask.nonzero(as_tuple=True)
-            peak_values = maxima[peak_locs].to("cpu").numpy()  # type: ignore
-            channel, x_locs, y_locs = (
-                peak_locs[0].to("cpu").numpy(),
-                peak_locs[1].to("cpu").numpy(),
-                peak_locs[2].to("cpu").numpy(),
-            )
+        model = peaks * images
 
-        else:
-            maxima = np.stack([ndimage.maximum_filter(image, size=3) for image in peaks])  # type: ignore
-            peaks_mask = (maxima == peaks) & (peaks > 0)
-            peak_locs = peaks_mask.nonzero()
-            peak_values = maxima[peak_locs]
-
-            channel, x_locs, y_locs = ( 
-                peak_locs[0],
-                peak_locs[1],
-                peak_locs[2],
-            )  # type: ignore
+        maxima = self.maxfilter_torch(model[:, None]).squeeze(1)
+        peaks_mask = (maxima == model) & peaks
+        peak_locs = peaks_mask.nonzero(as_tuple=True)
+        peak_values = maxima[peak_locs].to("cpu").numpy()  # type: ignore
+        channel, x_locs, y_locs = (
+            peak_locs[0].to("cpu").numpy(),
+            peak_locs[1].to("cpu").numpy(),
+            peak_locs[2].to("cpu").numpy(),
+        )
 
         channel: np.ndarray
         x_locs: np.ndarray

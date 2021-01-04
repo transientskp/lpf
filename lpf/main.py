@@ -1,3 +1,4 @@
+from lpf.sigma_clip.conv_sigma_clipper import ConvSigmaClipper
 import os
 import pickle
 import sys
@@ -5,7 +6,8 @@ import time
 import warnings
 from collections import defaultdict
 from types import FunctionType, MethodType
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, List, Tuple
+import matplotlib.pyplot as plt
 
 import astropy.io.fits  # type: ignore
 import numpy as np
@@ -18,12 +20,12 @@ from tqdm import trange  # type: ignore
 
 # from lpf.statistics_estimation import StatisticsEstimator
 # from lpf.sigma_clip import SigmaClipper
+# from lpf.sigma_clip import ConvSigmaClipper
 from lpf._nn import TimeFrequencyCNN
 # from lpf.bolts.vis import plot_skymap, catalog_video
-from lpf.bolts.vis import catalog_video
+# from lpf.bolts.vis import catalog_video
 from lpf.quality_control import QualityControl
 from lpf.running_catalog import RunningCatalog
-from lpf.sigma_clip import LocalSigmaClipper
 from lpf.source_finder import SourceFinderMaxFilter
 from lpf.surveys import Survey
 
@@ -60,16 +62,26 @@ class LivePulseFinder:
         # )
         self.array_length: int = config["array_length"]
 
-        self.clipper = LocalSigmaClipper(
-            config["image_shape"],  # type: ignore
-            config["kappa"],  # type: ignore
-            config["detection_radius"],  # type: ignore
-            config["sigmaclip_kernel_size"],  # type: ignore
-            config["sigmaclip_stride"],  # type: ignore
+        # self.clipper = LocalSigmaClipper(
+        #     config["image_shape"],  # type: ignore
+        #     config["kappa"],  # type: ignore
+        #     config["detection_radius"],  # type: ignore
+        #     config["sigmaclip_kernel_size"],  # type: ignore
+        #     config["sigmaclip_stride"],  # type: ignore
+        # )
+
+        self.clipper = ConvSigmaClipper(
+            config["image_size"],              # type: ignore
+            config["kappa"],                   # type: ignore
+            config["center_sigma"],            # type: ignore
+            config["scale_sigma"],             # type: ignore
+            config["detection_radius"],                  # type: ignore
+            config["sigma_clipping_maxiter"],  # type: ignore
+            "cuda" if self.cuda else "cpu"
         )
 
-        image_size: int = config["image_shape"][0]
-        self.sourcefinder = SourceFinderMaxFilter(image_size)
+        self.sourcefinder = SourceFinderMaxFilter(config["image_size"])  # type: ignore
+
         os.makedirs(config["output_folder"])  # type: ignore
         monitor_length = self.array_length // 2  # type: ignore
         self.runningcatalog = RunningCatalog(
@@ -82,13 +94,12 @@ class LivePulseFinder:
         )
 
         self.nn = TimeFrequencyCNN(config["nn"])  # type: ignore
-        self.nn.load(config["nn"]["checkpoint"])  # type: ignore
-        self.nn.eval()
-
         if self.cuda:
             self.nn.set_device("cuda")
         else:
             self.nn.set_device("cpu")
+        self.nn.load(config["nn"]["checkpoint"])  # type: ignore
+        self.nn.eval()
 
         self.timings: defaultdict[str, List[float]] = defaultdict(list)
 
@@ -96,20 +107,22 @@ class LivePulseFinder:
             config["output_folder"], "parameters.csv"  # type: ignore
         )
 
-    def _load_data(self, t: int) -> Tuple[Union[np.ndarray, torch.Tensor], WCS]:
+    def _load_data(self, t: int) -> Tuple[torch.Tensor, WCS]:
 
         images: List[np.ndarray] = []  # type: ignore
         headers: List[astropy.io.fits.Header] = []
 
         for f in self.survey[t]["file"]:  # type: ignore
             image, header = astropy.io.fits.getdata(f, header=True)  # type: ignore
-            images.append(image)  # type: ignore
+            images.append(image.astype(np.float32).squeeze())  # type: ignore
             headers.append(header)  # type: ignore
 
-        images: np.ndarray = np.stack(images).squeeze()  # type: ignore
-
+        images: np.ndarray = np.stack(images)  # type: ignore
+        images: torch.Tensor = torch.from_numpy(images)  # type: ignore
         if self.cuda:
-            images: torch.Tensor = torch.from_numpy(images.astype(np.float32)).to("cuda")  # type: ignore
+            images = images.cuda()
+
+        images[torch.isnan(images)] = 0
 
         wcs = WCS(headers[0])
 
@@ -183,12 +196,14 @@ class LivePulseFinder:
 
         t: int
         length = len(self.survey)
+        length = 32
         with torch.no_grad():
             for t in trange(length):  # type: ignore
                 images, wcs = self._load_data(t)
                 s = time.time()
                 # Quality control
-                images: Union[torch.Tensor, np.ndarray] = self.call(s, self.qc, images)
+                if self.config['use_quality_control']:
+                    images: torch.Tensor = self.call(s, self.qc, images)
 
                 # Statistics estimation.
 #                 intensity_map, variability_map, intensity_subtracted = self.call(
@@ -196,30 +211,40 @@ class LivePulseFinder:
 #                 )
 
                 # Sigma clipping.
-                peaks, _ = self.call(s, self.clipper, images)
+                peaks, center, scale = self.call(s, self.clipper, images)
 
-                detected_sources = self.call(s, self.sourcefinder, peaks, wcs=wcs)
+                # Source localization
+                detected_sources = self.call(s, self.sourcefinder, images, peaks, wcs=wcs)  # type: ignore
+
+                # Running catalog
                 self.call(s, self.runningcatalog, t, detected_sources, images)
 
+                # Filter sources for analysis
                 runcat_t, x_batch = self.call(s, self.runningcatalog.filter_sources_for_analysis, t, self.array_length)  # type: ignore
 
-                if x_batch.shape[0] > 0 and x_batch.shape[-1] == self.array_length:
+                if len(x_batch) > 0 and x_batch.shape[-1] == self.array_length:
                     means, stds = self.call(s, self._infer_parameters, x_batch)
                     self.call(s, self._write_to_csv, t, runcat_t, means, stds)  # type: ignore
 
                 if t == length:
                     break
 
-#         anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=0.5)
-#         anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
-
         # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
-        # print(timings)
+        # print(self.timings)
+ 
+        # anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=3)
+        # anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
+
+        plt.imsave(os.path.join(self.config["output_folder"], "center.pdf"), center.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
+        plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
+
         with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
             pickle.dump(self.timings, f)  
             
         with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore
             pickle.dump(self.runningcatalog, f)  
+
+
         
 
 

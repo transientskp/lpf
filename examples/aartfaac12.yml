@@ -4,19 +4,21 @@ fits_directory: '/project/druhe/2020-05-10T05:39:00-05:42:10_all/'
 timestamp_start_stop: [0, 19]
 # Indices [start, stop] that specify the location of subband in the filename.
 subband_start_stop: [24, 27]
-image_shape: [2300, 2300]
+image_size: 2300
 kappa: 5
 detection_radius: 1024 
-sigmaclip_kernel_size: 100
-sigmaclip_stride: 25
+center_sigma: 42
+scale_sigma: 42
+sigma_clipping_maxiter: 1
 output_folder: './runs/'
 mmap_n_sources: 4096
 mmap_n_timesteps: 1024
+use_quality_control: false
 box_size: 16
 separation_crit: 1.
 array_length: 64
 nn:
-  checkpoint: '/home/druhe/release/lpf/data/nn/epoch_29.ckpt'
+  checkpoint: '/home/druhe/release/lpf/data/nn/epoch_14.ckpt'
   architecture: [
       # ['conv', in_channels, out_channels, kernel_size, stride, padding]
       ["conv", 1, 8, 1, [1, 1], 0],

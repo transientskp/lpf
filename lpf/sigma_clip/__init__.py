@@ -1,2 +1,3 @@
 from lpf.sigma_clip.global_sigma_clipper import SigmaClipper
 from lpf.sigma_clip.local_sigma_clipper import LocalSigmaClipper
+from lpf.sigma_clip.conv_sigma_clipper import ConvSigmaClipper
