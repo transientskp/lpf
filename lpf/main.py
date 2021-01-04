@@ -196,7 +196,6 @@ class LivePulseFinder:
 
         t: int
         length = len(self.survey)
-        length = 32
         with torch.no_grad():
             for t in trange(length):  # type: ignore
                 images, wcs = self._load_data(t)
@@ -229,8 +228,11 @@ class LivePulseFinder:
                 if t == length:
                     break
 
-        # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
-        # print(self.timings)
+        with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
+            pickle.dump(self.timings, f)  
+ 
+        timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
+        print(self.timings)
  
         # anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=3)
         # anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
@@ -238,9 +240,7 @@ class LivePulseFinder:
         plt.imsave(os.path.join(self.config["output_folder"], "center.pdf"), center.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
         plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
 
-        with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
-            pickle.dump(self.timings, f)  
-            
+           
         with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore
             pickle.dump(self.runningcatalog, f)  
 
