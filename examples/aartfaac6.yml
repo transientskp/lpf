@@ -6,14 +6,16 @@ fits_directory: '/project/druhe/SB_I1/SB_I1/'
 timestamp_start_stop: [0, 17]
 # Indices [start, stop] that specify the location of subband in the filename.
 subband_start_stop: [19, 23]
-image_shape: [1024, 1024]
-kappa: 4.5
+image_size: 1024 
+kappa: 4
 detection_radius: 384
-sigmaclip_kernel_size: 64
-sigmaclip_stride: 16
+center_sigma: 21
+scale_sigma: 21
+sigma_clipping_maxiter: 1
 output_folder: './runs/'
 mmap_n_sources: 4096
 mmap_n_timesteps: 1024
+use_quality_control: true
 box_size: 12
 separation_crit: 1
 array_length: 64

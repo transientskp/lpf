@@ -55,5 +55,7 @@ class TimeFrequencyCNN(nn.Module):
         return means, variances
 
     def load(self, path: str):
-        state_dict: Dict[str, Any] = torch.load(path)  # type: ignore
+        if self.device is None:
+            raise  ValueError("Please set device first.")
+        state_dict: Dict[str, Any] = torch.load(path, map_location=torch.device(self.device))  # type: ignore
         self.load_state_dict(state_dict["model_state_dict"])
