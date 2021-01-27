@@ -1,6 +1,7 @@
 # Lofar Pulse Finder: Installation
 ## Requirements:
-- A python3 installation with working pip3 and python3-venv.
+- A python3 (>3.4) installation with working pip3 and python3-venv.
+
 
 ## 1. Clone the repository.
 ```
