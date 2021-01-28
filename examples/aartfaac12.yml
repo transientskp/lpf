@@ -1,14 +1,14 @@
 # Path to directory containing .fits files.
-fits_directory: '/project/druhe/2020-05-10T05:39:00-05:42:10_all/'
+fits_directory: '/data/2020-05-10T05:39:00-05:42:10_all/'
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
 timestamp_start_stop: [0, 19]
 # Indices [start, stop] that specify the location of subband in the filename.
 subband_start_stop: [24, 27]
-image_size: 2300
+image_size: 2300 
 kappa: 5
 detection_radius: 1024 
-center_sigma: 42
-scale_sigma: 42
+center_sigma: 21
+scale_sigma: 21
 sigma_clipping_maxiter: 1
 output_folder: './runs/'
 mmap_n_sources: 4096
@@ -18,7 +18,7 @@ box_size: 16
 separation_crit: 1.
 array_length: 64
 nn:
-  checkpoint: '/home/druhe/release/lpf/data/nn/epoch_14.ckpt'
+  checkpoint: '/afhome/ruhe/projects/lpf/data/nn/epoch_23.ckpt'
   architecture: [
       # ['conv', in_channels, out_channels, kernel_size, stride, padding]
       ["conv", 1, 8, 1, [1, 1], 0],

@@ -67,6 +67,8 @@ class ConvSigmaClipper:
         all_peaks = torch.zeros_like(x, dtype=bool)
         i = 1
         while True:
+            # TODO: on cpu, might want to resort to non-fft convolution with large stride and interpolation.
+            # Similar to what TraP does.
             center = convolve_fft(x, self.center_filter, axes=(-1, -2))
             scale = convolve_fft(
                 (x - center) ** 2, self.scale_filter, axes=(-1, -2)).sqrt()

@@ -6,3 +6,6 @@ runs/
 *.ipynb
 experiments/
 .ipynb_checkpoints/
+build/
+dist/
+lpf.egg-info/

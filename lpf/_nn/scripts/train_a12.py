@@ -13,7 +13,7 @@ from lpf._nn import configure_dataloaders
 from torch import distributions
 from torch.nn import functional as F
 import shutil
-from lpf._nn.vis import plot_batch_of_images
+# from lpf._nn.vis import plot_batch_of_images
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -56,18 +56,18 @@ class CustomLoss(nn.Module):
         if batch_idx == 0:
             result = {
                 "loss": loss,
-                "images": plot_batch_of_images(
-                    batch[0], 
-                    dm_p, 
-                    variances, 
-                    dm_t,
-                    other_outputs[:, 0],
-                    other_targets[:, 0],
-                    other_outputs[:, 1],
-                    other_targets[:, 1],
-                    other_outputs[:, 2],
-                    other_targets[:, 2],
-                ) 
+#                 "images": plot_batch_of_images(
+#                     batch[0], 
+#                     dm_p, 
+#                     variances, 
+#                     dm_t,
+#                     other_outputs[:, 0],
+#                     other_targets[:, 0],
+#                     other_outputs[:, 1],
+#                     other_targets[:, 1],
+#                     other_outputs[:, 2],
+#                     other_targets[:, 2],
+#                 ) 
             }
 
         else:
@@ -109,11 +109,12 @@ class CustomTransientDataset(Dataset):  # type: ignore
             noise_index = random.randint(0, self.noise_len - 1)
             noise_data = self.noise_mmap[noise_index]
         else:
-            noise_data = np.random.randn_like(tr_data)
+            # Will be added in collate_fn
+            noise_data = None
 
         return (
             tr_data.astype(np.float32),
-            noise_data.astype(np.float32),
+            noise_data,
             param_data.astype(np.float32),
             self.noise_multiplier
         )
@@ -125,18 +126,22 @@ class CustomTransientDataset(Dataset):  # type: ignore
 def collate_fn(batch):
     tr_data, noise_data, param_data, noise_multiplier = zip(*batch)
     tr_data = np.stack(tr_data)
-    noise_data = np.stack(noise_data)
+   
     param_data = np.stack(param_data)
     mult_data = np.stack(noise_multiplier).astype(np.float32)
 
     # AARTFAAC12
     subbands = (0, 4, 7, 11, 14, 17, 21, 24, 28, 31, 34, 38, 41, 45, 48, 51)
     tr_data = tr_data[:, subbands, :]
+    
+    if noise_data[0] is not None:
+        noise_data = np.stack(noise_data).astype(np.float32)
+    else:
+        noise_data = np.random.randn(*tr_data.shape).astype(np.float32)
 
     noise_data = (
         noise_data - noise_data.mean(axis=(-1, -2), keepdims=True)
     ) / noise_data.std(axis=(-1, -2), keepdims=True)
-
 
     to_return = torch.from_numpy(noise_data * mult_data[:, None, None] + tr_data)
 
