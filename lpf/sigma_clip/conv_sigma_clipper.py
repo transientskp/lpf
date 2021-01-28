@@ -71,11 +71,11 @@ class ConvSigmaClipper:
             scale = convolve_fft(
                 (x - center) ** 2, self.scale_filter, axes=(-1, -2)).sqrt()
 
-            peaks = (x > center + self.kappa * scale) & self.mask
+            peaks = x > center + self.kappa * scale
 
             if not peaks.any():
                 if i == 1:
-                    raise ValueError("Did not find any peaks, consider lowering kappa.")
+                    print("WARNING - Did not find any peaks, consider lowering kappa.")
                 break
 
             all_peaks = all_peaks | peaks
@@ -85,5 +85,7 @@ class ConvSigmaClipper:
             i += 1
 
             x[peaks] = center[peaks]
+
+        all_peaks = all_peaks & self.mask
 
         return all_peaks, center, scale

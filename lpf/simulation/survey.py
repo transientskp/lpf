@@ -10,6 +10,7 @@ import numpy as np
 from astropy.io import ascii, fits  # type: ignore
 import datetime
 from skimage.transform import resize
+import matplotlib.pyplot as plt
 
 
 class SurveySimulator:
@@ -40,12 +41,13 @@ class SurveySimulator:
 
             im: np.ndarray
             sky = np.float32(self.skysim(self.catalog))
+
+            delta_t = self.timestamp + datetime.timedelta(seconds=t)
+            t_str = delta_t.strftime("%Y-%m-%dT%H:%M:%S")
             for band, im in enumerate(sky):  # type: ignore
                 band_str = f'S{band:03}'
                 output_dir = os.path.join(self.output_dir, band_str)
                 os.makedirs(output_dir, exist_ok=True)
-                delta_t = self.timestamp + datetime.timedelta(seconds=t)
-                t_str = delta_t.strftime("%Y-%m-%dT%H:%M:%S")
                 filename = f'{t_str}-{band_str}.fits'
                 filename = os.path.join(output_dir, filename)
 
@@ -54,6 +56,10 @@ class SurveySimulator:
 
 
                 # data = template * 0 + im[None, None] 
+                if t == 0:
+                    mean = im.mean()
+                    std = im.std()
+                    plt.imsave(os.path.join(output_dir, 'example.png'), im, vmin=mean - 3 * std, vmax = mean + 3 * std)
                 data = im[None, None]
 
 

@@ -22,14 +22,19 @@ def take_measurements(detected_sources, images, box_size) -> Table:
         else:
             assert not np.any(np.isnan(data))
 
-        if isinstance(images, torch.Tensor):
-            peak_flux = torch.amax(data, axis=(-1, -2))
-            # integrated_flux = torch.sum(data, axis=(-1, -2))
-            measurements.append(peak_flux.to("cpu").numpy())
-        else:
-            peak_flux = np.max(data, axis=(-1, -2))
-            # integrated_flux = np.sum(data, axis=(-1, -2))
-            measurements.append(peak_flux)
+        try:
+            if isinstance(images, torch.Tensor):
+                peak_flux = torch.amax(data, axis=(-1, -2))
+                # integrated_flux = torch.sum(data, axis=(-1, -2))
+                measurements.append(peak_flux.to("cpu").numpy())
+            else:
+                peak_flux = np.max(data, axis=(-1, -2))
+                # integrated_flux = np.sum(data, axis=(-1, -2))
+                measurements.append(peak_flux)
+        except RuntimeError:
+            raise RuntimeError(("Got exception while measuring peak flux."
+                   " This is likely the result of a source being out of bounds."
+                   " Consider lowering the detection radius."))
 
     detected_sources["peak_flux"] = measurements
 

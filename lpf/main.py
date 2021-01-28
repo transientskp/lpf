@@ -42,6 +42,8 @@ class LivePulseFinder:
             config["subband_start_stop"],  # type: ignore
         )
 
+        self.n_timesteps = len(self.survey) if config['n_timesteps'] == -1 else config['n_timesteps']
+
         if torch.cuda.is_available():  # type: ignore
             print("Running on GPU.")
             self.cuda: bool = True
@@ -88,7 +90,7 @@ class LivePulseFinder:
             config["output_folder"],  # type: ignore
             config["box_size"],  # type: ignore
             config["mmap_n_sources"],  # type: ignore
-            config["mmap_n_timesteps"],  # type: ignore
+            self.n_timesteps,  # type: ignore
             monitor_length=monitor_length,  # type: ignore
             separation_crit=config["separation_crit"],  # type: ignore
         )
@@ -195,10 +197,8 @@ class LivePulseFinder:
     def run(self) -> None:
 
         t: int
-        length = len(self.survey)
-        length = 32
         with torch.no_grad():
-            for t in trange(length):  # type: ignore
+            for t in trange(self.n_timesteps):  # type: ignore
                 images, wcs = self._load_data(t)
                 s = time.time()
                 # Quality control
@@ -226,23 +226,20 @@ class LivePulseFinder:
                     means, stds = self.call(s, self._infer_parameters, x_batch)
                     self.call(s, self._write_to_csv, t, runcat_t, means, stds)  # type: ignore
 
-                if t == length:
-                    break
-
         # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
         # print(self.timings)
  
         # anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=3)
         # anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
-        plt.imsave(os.path.join(self.config["output_folder"], "center.pdf"), center.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
-        plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
+        # plt.imsave(os.path.join(self.config["output_folder"], "center.pdf"), center.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
+        # plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
 
-        with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
-            pickle.dump(self.timings, f)  
+        # with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
+        #     pickle.dump(self.timings, f)  
             
-        with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore
-            pickle.dump(self.runningcatalog, f)  
+        # with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore
+        #     pickle.dump(self.runningcatalog, f)  
 
 
         
