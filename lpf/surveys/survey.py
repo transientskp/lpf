@@ -7,6 +7,10 @@ import pandas as pd
 from lpf.bolts.io import rglob
 from typing import Tuple
 import os
+import logging
+logger = logging.getLogger(__name__)
+
+RAISE_NAN_WARN_FRACTION = 1 / 4
 
 
 class Survey:
@@ -71,4 +75,8 @@ class Survey:
         # diff_endtime = (sliced['timestamp'] - min_t).dt.seconds  # type: ignore
         # assert (diff_endtime < 2).all(), sliced  # type: ignore
         # return sliced
-        return self.indexed_data.loc[self.time_index[index]]
+        timestep = self.indexed_data.loc[self.time_index[index]]
+        num_nan = timestep.isna().any(axis=1).sum()
+        if num_nan > len(timestep) * RAISE_NAN_WARN_FRACTION:
+            logger.warning("Encountered %s sub-bands without an image at index %s.", num_nan, index)
+        return timestep

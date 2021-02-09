@@ -1,7 +1,7 @@
 # Global
 array_length: 512
 df: 195312.5
-dt: 1
+dt: 2
 frequencies:
   [
     64.84375,
