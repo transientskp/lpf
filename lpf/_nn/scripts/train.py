@@ -155,8 +155,8 @@ def load_data(config, train_split=0.7, val_split=0.2):
     if train_split + val_split > 0.9:
         print("WARNING: test set less than 10% of total data.")
     dataset = CustomTransientDataset(
-        config["transient_path"],
-        config["parameter_path"],
+        os.path.join(config["simulation_output_folder"], 'data.npy'),
+        os.path.join(config["simulation_output_folder"], 'parameters.npy'),
         config["noise_multiplier"],
         config["noise_path"],
     )
@@ -174,15 +174,15 @@ def load_data(config, train_split=0.7, val_split=0.2):
 
 def main():
     config = get_config()
-    output_folder = config['output_folder']
+    output_folder = config['nn_output_folder']
     os.makedirs(output_folder)
     shutil.copy(sys.argv[1], output_folder)
-    dataset, train_dataset, val_dataset, test_dataset = load_data(config["data"])
+    dataset, train_dataset, val_dataset, test_dataset = load_data(config)
 
     train_loader = configure_dataloaders(
         train_dataset,
-        batch_size=config["data"]["batch_size"],
-        num_workers=config["data"]["num_workers"],
+        batch_size=config["batch_size"],
+        num_workers=config["num_workers"],
         shuffle=True,
         collate_fn=collate_fn
     )
@@ -190,8 +190,8 @@ def main():
     val_loader, test_loader = configure_dataloaders(
         val_dataset,
         test_dataset,
-        batch_size=config["data"]["batch_size"],
-        num_workers=config["data"]["num_workers"],
+        batch_size=config["batch_size"],
+        num_workers=config["num_workers"],
         shuffle=False,
         collate_fn=collate_fn
     )
@@ -199,11 +199,11 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info("Using device %s", device)
 
-    tf_cnn = TimeFrequencyCNN(dataset.shape)
+    tf_cnn = TimeFrequencyCNN([len(config["frequencies"]), config["array_length"]])
     tf_cnn.set_device(device)
     loss_fn = CustomLoss()
     trainer = Trainer(
-       config["trainer"], output_folder, tf_cnn, loss_fn, train_loader, val_loader, test_loader
+       config, output_folder, tf_cnn, loss_fn, train_loader, val_loader, test_loader
     )
     trainer.run()
 

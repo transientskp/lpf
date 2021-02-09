@@ -87,7 +87,7 @@ class TimeFrequencyCNN(nn.Module):
                 padding: int = layer[5]  # type: ignore
                 self.layers.append(nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding))  # type: ignore
 
-        self.softplus = Softplus(beta=1e-2)  # type: ignore
+        self.softplus = Softplus(beta=1e-1)  # type: ignore
         self.nn = nn.Sequential(*self.layers)
 
     def set_device(self, device: str):

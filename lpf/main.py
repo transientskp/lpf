@@ -23,7 +23,7 @@ from tqdm import trange  # type: ignore
 # from lpf.statistics_estimation import StatisticsEstimator
 # from lpf.sigma_clip import SigmaClipper
 # from lpf.sigma_clip import ConvSigmaClipper
-from lpf._nn import TimeFrequencyCNN
+from lpf._nn.tf_cnn_auto import TimeFrequencyCNN
 # from lpf.bolts.vis import plot_skymap, catalog_video
 # from lpf.bolts.vis import catalog_video
 from lpf.quality_control import QualityControl
@@ -108,12 +108,12 @@ class LivePulseFinder:
             separation_crit=config["separation_crit"],  # type: ignore
         )
 
-        self.nn = TimeFrequencyCNN(config["nn"])  # type: ignore
+        self.nn = TimeFrequencyCNN([len(config['frequencies']), self.array_length])  # type: ignore
         if self.cuda:
             self.nn.set_device("cuda")
         else:
             self.nn.set_device("cpu")
-        self.nn.load(config["nn"]["checkpoint"])  # type: ignore
+        self.nn.load(config["nn_checkpoint"])  # type: ignore
         self.nn.eval()
 
         self.timings: defaultdict[str, List[float]] = defaultdict(list)

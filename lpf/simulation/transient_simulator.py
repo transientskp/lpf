@@ -156,7 +156,7 @@ class TransientSimulator:
             config["spec_ind_range"],  # type: ignore
         )
 
-        self.output_folder: str = config["output_folder"]
+        self.output_folder: str = config["simulation_output_folder"]
         os.makedirs(self.output_folder)
 
         self.data_mmap: np.ndarray = open_memmap(
