@@ -1,5 +1,5 @@
 # type: ignore
-from lpf.simulation.transient_simulator import TransientsSimulator
+from lpf.simulation.transient_simulator import TransientSimulator
 import yaml
 import sys
 
@@ -18,7 +18,7 @@ def get_config():
 
 def main():
     config = get_config()
-    tsim = TransientsSimulator(config)
+    tsim = TransientSimulator(config)
     tsim.run()
 
 
