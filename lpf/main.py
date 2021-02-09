@@ -1,3 +1,4 @@
+from torch._C import Value
 from lpf.sigma_clip.conv_sigma_clipper import ConvSigmaClipper
 import os
 import pickle
@@ -8,6 +9,7 @@ from collections import defaultdict
 from types import FunctionType, MethodType
 from typing import Any, Callable, List, Tuple
 import matplotlib.pyplot as plt
+import shutil
 
 import astropy.io.fits  # type: ignore
 import numpy as np
@@ -40,6 +42,7 @@ class LivePulseFinder:
             config["fits_directory"],  # type: ignore
             config["timestamp_start_stop"],  # type: ignore
             config["subband_start_stop"],  # type: ignore
+            config["dt"]
         )
 
         self.n_timesteps = len(self.survey) if config['n_timesteps'] == -1 else config['n_timesteps']
@@ -71,9 +74,10 @@ class LivePulseFinder:
         #     config["sigmaclip_kernel_size"],  # type: ignore
         #     config["sigmaclip_stride"],  # type: ignore
         # )
+        self.image_size = config["image_size"]
 
         self.clipper = ConvSigmaClipper(
-            config["image_size"],              # type: ignore
+            self.image_size,              # type: ignore
             config["kappa"],                   # type: ignore
             config["center_sigma"],            # type: ignore
             config["scale_sigma"],             # type: ignore
@@ -82,7 +86,16 @@ class LivePulseFinder:
             "cuda" if self.cuda else "cpu"
         )
 
-        self.sourcefinder = SourceFinderMaxFilter(config["image_size"])  # type: ignore
+        self.sourcefinder = SourceFinderMaxFilter(self.image_size)  # type: ignore
+
+        if os.path.exists(config["output_folder"]):
+            remove = None
+            while remove not in ["y", "n"]:
+                remove = input("Run folder exists, delete it? (y/n)")
+            if remove == "y":
+                shutil.rmtree(config["output_folder"])
+            else:
+                exit()
 
         os.makedirs(config["output_folder"])  # type: ignore
         monitor_length = self.array_length // 2  # type: ignore
@@ -112,12 +125,17 @@ class LivePulseFinder:
     def _load_data(self, t: int) -> Tuple[torch.Tensor, WCS]:
 
         images: List[np.ndarray] = []  # type: ignore
-        headers: List[astropy.io.fits.Header] = []
+        # headers: List[astropy.io.fits.Header] = []
+        header = None
 
         for f in self.survey[t]["file"]:  # type: ignore
-            image, header = astropy.io.fits.getdata(f, header=True)  # type: ignore
-            images.append(image.astype(np.float32).squeeze())  # type: ignore
-            headers.append(header)  # type: ignore
+            if f is not None:
+                image, header = astropy.io.fits.getdata(f, header=True)  # type: ignore
+                image = image.squeeze().astype(np.float32)
+            else:
+                image = np.zeros([self.image_size, self.image_size], dtype=np.float32)
+
+            images.append(image)  # type: ignore
 
         images: np.ndarray = np.stack(images)  # type: ignore
         images: torch.Tensor = torch.from_numpy(images)  # type: ignore
@@ -126,7 +144,10 @@ class LivePulseFinder:
 
         images[torch.isnan(images)] = 0
 
-        wcs = WCS(headers[0])
+        if header is not None:
+            wcs = WCS(header)
+        else:
+            raise ValueError(f"No images were found in time-step {t}.")
 
         return images, wcs
 

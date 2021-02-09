@@ -10,36 +10,33 @@ import os
 
 
 class Survey:
-    def __init__(self, path: str, timestamp_start_stop: Tuple[int, int], subband_start_stop: Tuple[int, int]):
+    def __init__(self, 
+                 path: str, 
+                 timestamp_start_stop: Tuple[int, int], 
+                 subband_start_stop: Tuple[int, int],
+                 dt: int):
 
         self.survey_length = None
         self.timestamp_start_stop: Tuple[int, int] = timestamp_start_stop
         self.subband_start_stop: Tuple[int, int] = subband_start_stop
 
-        data: pd.DataFrame = self._setup(path)
-        self.__length: int = data.groupby("band").size().min()  # type: ignore
+        self.data: pd.DataFrame = self._setup(path).set_index('timestamp')
 
-        self._sanity_checks(data)
+        # This resamples the data onto the specified delta T grid. Filling NaN when images are missing.
+        self.indexed_data = self.data.pivot(columns='band').resample(f'{dt}S').first().stack(dropna=False)
 
-        data = self._filter(data)
-        self.data = self._add_time_index(data)
+        self.num_bands = len(self.indexed_data.index.unique(level=-1))
 
-        self.indexed_data: pd.DataFrame = self.data.set_index(["time_index", "band"]).sort_index(  # type: ignore
-            ascending=[True, False]
-        )
+        assert (self.indexed_data.groupby('timestamp').size() == self.num_bands).all()
+        self.indexed_data = self.indexed_data.sort_index(ascending=[True, False])
+        self.time_index = self.indexed_data.index.unique(level=0)
 
-    def _sanity_checks(self, data: pd.DataFrame):
-        endtimes = data.groupby("band")["timestamp"].max()  # type: ignore
-        min_endtime = endtimes.min()  # type: ignore
-        diff_endtime = (endtimes - min_endtime).dt.seconds  # type: ignore
-        assert (diff_endtime < 2).all()  # type: ignore
+    # def _filter(self, data: pd.DataFrame) -> pd.DataFrame:
+    #     return data.sort_values(["band", "timestamp"]).groupby("band").head(len(self))
 
-    def _filter(self, data: pd.DataFrame) -> pd.DataFrame:
-        return data.sort_values(["band", "timestamp"]).groupby("band").head(len(self))
-
-    def _add_time_index(self, data: pd.DataFrame) -> pd.DataFrame:
-        data["time_index"] = data.groupby("band").cumcount()  # type: ignore
-        return data
+    # def _add_time_index(self, data: pd.DataFrame) -> pd.DataFrame:
+    #     data["time_index"] = data.groupby("band").cumcount()  # type: ignore
+    #     return data
 
     def _setup(self, path: str) -> pd.DataFrame:
 
@@ -61,17 +58,17 @@ class Survey:
             }
         ).dropna()
 
-
         assert len(data) > 0, timestamps[:5]
         return data
 
     def __len__(self):
-        return self.__length
+        return len(self.indexed_data)
 
     def __getitem__(self, index: int) -> pd.DataFrame:
-        sliced: pd.DataFrame = self.indexed_data.loc[index].dropna()  # type: ignore
+        # sliced: pd.DataFrame = self.indexed_data.loc[index].dropna()  # type: ignore
         # TODO: for performance these can be removed at runtime.
-        min_t = sliced['timestamp'].min()  # type: ignore
-        diff_endtime = (sliced['timestamp'] - min_t).dt.seconds  # type: ignore
-        assert (diff_endtime < 2).all(), sliced  # type: ignore
-        return sliced
+        # min_t = sliced['timestamp'].min()  # type: ignore
+        # diff_endtime = (sliced['timestamp'] - min_t).dt.seconds  # type: ignore
+        # assert (diff_endtime < 2).all(), sliced  # type: ignore
+        # return sliced
+        return self.indexed_data.loc[self.time_index[index]]
