@@ -24,12 +24,16 @@ from tqdm import trange  # type: ignore
 # from lpf.sigma_clip import SigmaClipper
 # from lpf.sigma_clip import ConvSigmaClipper
 from lpf._nn.tf_cnn_auto import TimeFrequencyCNN
+
 # from lpf.bolts.vis import plot_skymap, catalog_video
 # from lpf.bolts.vis import catalog_video
 from lpf.quality_control import QualityControl
 from lpf.running_catalog import RunningCatalog
 from lpf.source_finder import SourceFinderMaxFilter
 from lpf.surveys import Survey
+import logging
+
+logger = logging.getLogger(__name__)
 
 warnings.simplefilter("ignore", category=AstropyWarning)
 
@@ -42,10 +46,12 @@ class LivePulseFinder:
             config["fits_directory"],  # type: ignore
             config["timestamp_start_stop"],  # type: ignore
             config["subband_start_stop"],  # type: ignore
-            config["dt"]
+            config["dt"],
         )
 
-        self.n_timesteps = len(self.survey) if config['n_timesteps'] == -1 else config['n_timesteps']
+        self.n_timesteps = (
+            len(self.survey) if config["n_timesteps"] == -1 else config["n_timesteps"]
+        )
 
         if torch.cuda.is_available():  # type: ignore
             print("Running on GPU.")
@@ -77,13 +83,13 @@ class LivePulseFinder:
         self.image_size = config["image_size"]
 
         self.clipper = ConvSigmaClipper(
-            self.image_size,              # type: ignore
-            config["kappa"],                   # type: ignore
-            config["center_sigma"],            # type: ignore
-            config["scale_sigma"],             # type: ignore
-            config["detection_radius"],                  # type: ignore
+            self.image_size,  # type: ignore
+            config["kappa"],  # type: ignore
+            config["center_sigma"],  # type: ignore
+            config["scale_sigma"],  # type: ignore
+            config["detection_radius"],  # type: ignore
             config["sigma_clipping_maxiter"],  # type: ignore
-            "cuda" if self.cuda else "cpu"
+            "cuda" if self.cuda else "cpu",
         )
 
         self.sourcefinder = SourceFinderMaxFilter(self.image_size)  # type: ignore
@@ -108,7 +114,7 @@ class LivePulseFinder:
             separation_crit=config["separation_crit"],  # type: ignore
         )
 
-        self.nn = TimeFrequencyCNN([len(config['frequencies']), self.array_length])  # type: ignore
+        self.nn = TimeFrequencyCNN([len(config["frequencies"]), self.array_length])  # type: ignore
         if self.cuda:
             self.nn.set_device("cuda")
         else:
@@ -147,7 +153,8 @@ class LivePulseFinder:
         if header is not None:
             wcs = WCS(header)
         else:
-            raise ValueError(f"No images were found in time-step {t}.")
+            logger.warning("No images were found in time-step %s", t)
+            wcs = None
 
         return images, wcs
 
@@ -167,27 +174,27 @@ class LivePulseFinder:
     ) -> None:
         dm, fluence, width, index = means
         (dm_std,) = stds
-        
+
         data = {
             "timestep": timestep,
-            "source_id": runcat_t['id'],
-            "ra": runcat_t['coordinate'].ra.deg,
-            "dec": runcat_t['coordinate'].dec.deg,
-            "x_peak": runcat_t['x_peak'],
-            'y_peak': runcat_t['y_peak'],
-            'last_detected': runcat_t['last_detected'],
-            'is_monitored': runcat_t['is_monitored'],
-            'is_backward_fill': runcat_t['is_backward_fill'],
-            'is_new_source': runcat_t['new_source'],
-            'channel': runcat_t['channel'],
-            "peak_flux": runcat_t['peak_flux'].max(),
+            "source_id": runcat_t["id"],
+            "ra": runcat_t["coordinate"].ra.deg,
+            "dec": runcat_t["coordinate"].dec.deg,
+            "x_peak": runcat_t["x_peak"],
+            "y_peak": runcat_t["y_peak"],
+            "last_detected": runcat_t["last_detected"],
+            "is_monitored": runcat_t["is_monitored"],
+            "is_backward_fill": runcat_t["is_backward_fill"],
+            "is_new_source": runcat_t["new_source"],
+            "channel": runcat_t["channel"],
+            "peak_flux": runcat_t["peak_flux"].max(),
             "dm": dm,
             "dm_std": dm_std,
             "fluence": fluence,
             "width": width,
             "spectral_index": index,
         }
-        
+
         df = pd.DataFrame.from_dict(data, dtype=np.float32)  # type: ignore
         df.to_csv(
             self.transient_parameters,
@@ -223,13 +230,13 @@ class LivePulseFinder:
                 images, wcs = self._load_data(t)
                 s = time.time()
                 # Quality control
-                if self.config['use_quality_control']:
+                if self.config["use_quality_control"]:
                     images: torch.Tensor = self.call(s, self.qc, images)
 
                 # Statistics estimation.
-#                 intensity_map, variability_map, intensity_subtracted = self.call(
-#                     s, self.statistics, images
-#                 )
+                #                 intensity_map, variability_map, intensity_subtracted = self.call(
+                #                     s, self.statistics, images
+                #                 )
 
                 # Sigma clipping.
                 peaks, center, scale = self.call(s, self.clipper, images)
@@ -249,7 +256,7 @@ class LivePulseFinder:
 
         # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
         # print(self.timings)
- 
+
         # anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=3)
         # anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
@@ -257,13 +264,10 @@ class LivePulseFinder:
         # plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
 
         # with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
-        #     pickle.dump(self.timings, f)  
-            
+        #     pickle.dump(self.timings, f)
+
         # with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore
-        #     pickle.dump(self.runningcatalog, f)  
-
-
-        
+        #     pickle.dump(self.runningcatalog, f)
 
 
 def get_config():

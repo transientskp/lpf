@@ -24,7 +24,13 @@ class Survey:
         self.timestamp_start_stop: Tuple[int, int] = timestamp_start_stop
         self.subband_start_stop: Tuple[int, int] = subband_start_stop
 
-        self.data: pd.DataFrame = self._setup(path).set_index('timestamp')
+        self.data: pd.DataFrame = self._setup(path)
+        len_before = len(self.data)
+        self.data = self.data.drop_duplicates(['timestamp','band'], keep='last')
+        len_after = len(self.data)
+        if (len_before - len_after) > 0:
+            logger.warning("%s timestep-subband duplicates were found and dropped.", len_before - len_after)
+        self.data = self.data.set_index('timestamp')
 
         # This resamples the data onto the specified delta T grid. Filling NaN when images are missing.
         self.indexed_data = self.data.pivot(columns='band').resample(f'{dt}S').first().stack(dropna=False)

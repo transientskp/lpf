@@ -6,6 +6,9 @@ import torch
 import pandas as pd
 from numpy.lib.format import open_memmap
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 tensor_or_ndarray = Union[np.ndarray, torch.Tensor]
 
@@ -68,6 +71,12 @@ class RunningCatalog:
         # )  # type: ignore
         # print(idx[:10])
         # exit()
+
+        if len(detected_sources) == 0:
+            logger.warning("Got empty source list.")
+            # Return an empty table.
+            return prev.copy()[:0]
+
 
         idx, d2d, _ = detected_sources["coordinate"].match_to_catalog_sky(  # type: ignore
             prev["coordinate"]
@@ -196,10 +205,11 @@ class RunningCatalog:
         self, t: int, detected_sources: table.Table, images: tensor_or_ndarray
     ) -> None:
 
-        detected_sources = filter_nan(detected_sources)
         # detected_sources = filter_duplicates(detected_sources)
 
+
         if len(detected_sources) > 0:
+            detected_sources = filter_nan(detected_sources)
             detected_sources["last_detected"] = t
             detected_sources["is_monitored"] = False
             detected_sources["is_backward_fill"] = False
