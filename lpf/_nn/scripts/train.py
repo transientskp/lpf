@@ -19,9 +19,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-torch.autograd.set_detect_anomaly(True)
-
-
 def get_config():
 
     cmd = sys.argv
