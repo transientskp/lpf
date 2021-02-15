@@ -1,5 +1,4 @@
 output_folder: 'data/nn/'
-device: 'cuda'
 nn:
   architecture: [
       # ['conv', in_channels, out_channels, kernel_size, stride, padding]

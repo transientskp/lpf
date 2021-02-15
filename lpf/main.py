@@ -1,3 +1,4 @@
+from torch._C import Value
 from lpf.sigma_clip.conv_sigma_clipper import ConvSigmaClipper
 import os
 import pickle
@@ -8,6 +9,7 @@ from collections import defaultdict
 from types import FunctionType, MethodType
 from typing import Any, Callable, List, Tuple
 import matplotlib.pyplot as plt
+import shutil
 
 import astropy.io.fits  # type: ignore
 import numpy as np
@@ -21,13 +23,17 @@ from tqdm import trange  # type: ignore
 # from lpf.statistics_estimation import StatisticsEstimator
 # from lpf.sigma_clip import SigmaClipper
 # from lpf.sigma_clip import ConvSigmaClipper
-from lpf._nn import TimeFrequencyCNN
+from lpf._nn.tf_cnn_auto import TimeFrequencyCNN
+
 # from lpf.bolts.vis import plot_skymap, catalog_video
 # from lpf.bolts.vis import catalog_video
 from lpf.quality_control import QualityControl
 from lpf.running_catalog import RunningCatalog
 from lpf.source_finder import SourceFinderMaxFilter
 from lpf.surveys import Survey
+import logging
+
+logger = logging.getLogger(__name__)
 
 warnings.simplefilter("ignore", category=AstropyWarning)
 
@@ -40,9 +46,12 @@ class LivePulseFinder:
             config["fits_directory"],  # type: ignore
             config["timestamp_start_stop"],  # type: ignore
             config["subband_start_stop"],  # type: ignore
+            config["dt"],
         )
 
-        self.n_timesteps = len(self.survey) if config['n_timesteps'] == -1 else config['n_timesteps']
+        self.n_timesteps = (
+            len(self.survey) if config["n_timesteps"] == -1 else config["n_timesteps"]
+        )
 
         if torch.cuda.is_available():  # type: ignore
             print("Running on GPU.")
@@ -71,18 +80,28 @@ class LivePulseFinder:
         #     config["sigmaclip_kernel_size"],  # type: ignore
         #     config["sigmaclip_stride"],  # type: ignore
         # )
+        self.image_size = config["image_size"]
 
         self.clipper = ConvSigmaClipper(
-            config["image_size"],              # type: ignore
-            config["kappa"],                   # type: ignore
-            config["center_sigma"],            # type: ignore
-            config["scale_sigma"],             # type: ignore
-            config["detection_radius"],                  # type: ignore
+            self.image_size,  # type: ignore
+            config["kappa"],  # type: ignore
+            config["center_sigma"],  # type: ignore
+            config["scale_sigma"],  # type: ignore
+            config["detection_radius"],  # type: ignore
             config["sigma_clipping_maxiter"],  # type: ignore
-            "cuda" if self.cuda else "cpu"
+            "cuda" if self.cuda else "cpu",
         )
 
-        self.sourcefinder = SourceFinderMaxFilter(config["image_size"])  # type: ignore
+        self.sourcefinder = SourceFinderMaxFilter(self.image_size)  # type: ignore
+
+        if os.path.exists(config["output_folder"]):
+            remove = None
+            while remove not in ["y", "n"]:
+                remove = input("Run folder exists, delete it? (y/n)")
+            if remove == "y":
+                shutil.rmtree(config["output_folder"])
+            else:
+                exit()
 
         os.makedirs(config["output_folder"])  # type: ignore
         monitor_length = self.array_length // 2  # type: ignore
@@ -95,12 +114,12 @@ class LivePulseFinder:
             separation_crit=config["separation_crit"],  # type: ignore
         )
 
-        self.nn = TimeFrequencyCNN(config["nn"])  # type: ignore
+        self.nn = TimeFrequencyCNN([len(config["frequencies"]), self.array_length])  # type: ignore
         if self.cuda:
             self.nn.set_device("cuda")
         else:
             self.nn.set_device("cpu")
-        self.nn.load(config["nn"]["checkpoint"])  # type: ignore
+        self.nn.load(config["nn_checkpoint"])  # type: ignore
         self.nn.eval()
 
         self.timings: defaultdict[str, List[float]] = defaultdict(list)
@@ -112,12 +131,17 @@ class LivePulseFinder:
     def _load_data(self, t: int) -> Tuple[torch.Tensor, WCS]:
 
         images: List[np.ndarray] = []  # type: ignore
-        headers: List[astropy.io.fits.Header] = []
+        # headers: List[astropy.io.fits.Header] = []
+        header = None
 
         for f in self.survey[t]["file"]:  # type: ignore
-            image, header = astropy.io.fits.getdata(f, header=True)  # type: ignore
-            images.append(image.astype(np.float32).squeeze())  # type: ignore
-            headers.append(header)  # type: ignore
+            if f is not None:
+                image, header = astropy.io.fits.getdata(f, header=True)  # type: ignore
+                image = image.squeeze().astype(np.float32)
+            else:
+                image = np.zeros([self.image_size, self.image_size], dtype=np.float32)
+
+            images.append(image)  # type: ignore
 
         images: np.ndarray = np.stack(images)  # type: ignore
         images: torch.Tensor = torch.from_numpy(images)  # type: ignore
@@ -126,7 +150,11 @@ class LivePulseFinder:
 
         images[torch.isnan(images)] = 0
 
-        wcs = WCS(headers[0])
+        if header is not None:
+            wcs = WCS(header)
+        else:
+            logger.warning("No images were found in time-step %s", t)
+            wcs = None
 
         return images, wcs
 
@@ -146,27 +174,27 @@ class LivePulseFinder:
     ) -> None:
         dm, fluence, width, index = means
         (dm_std,) = stds
-        
+
         data = {
             "timestep": timestep,
-            "source_id": runcat_t['id'],
-            "ra": runcat_t['coordinate'].ra.deg,
-            "dec": runcat_t['coordinate'].dec.deg,
-            "x_peak": runcat_t['x_peak'],
-            'y_peak': runcat_t['y_peak'],
-            'last_detected': runcat_t['last_detected'],
-            'is_monitored': runcat_t['is_monitored'],
-            'is_backward_fill': runcat_t['is_backward_fill'],
-            'is_new_source': runcat_t['new_source'],
-            'channel': runcat_t['channel'],
-            "peak_flux": runcat_t['peak_flux'].max(),
+            "source_id": runcat_t["id"],
+            "ra": runcat_t["coordinate"].ra.deg,
+            "dec": runcat_t["coordinate"].dec.deg,
+            "x_peak": runcat_t["x_peak"],
+            "y_peak": runcat_t["y_peak"],
+            "last_detected": runcat_t["last_detected"],
+            "is_monitored": runcat_t["is_monitored"],
+            "is_backward_fill": runcat_t["is_backward_fill"],
+            "is_new_source": runcat_t["new_source"],
+            "channel": runcat_t["channel"],
+            "peak_flux": runcat_t["peak_flux"].max(),
             "dm": dm,
             "dm_std": dm_std,
             "fluence": fluence,
             "width": width,
             "spectral_index": index,
         }
-        
+
         df = pd.DataFrame.from_dict(data, dtype=np.float32)  # type: ignore
         df.to_csv(
             self.transient_parameters,
@@ -202,13 +230,13 @@ class LivePulseFinder:
                 images, wcs = self._load_data(t)
                 s = time.time()
                 # Quality control
-                if self.config['use_quality_control']:
+                if self.config["use_quality_control"]:
                     images: torch.Tensor = self.call(s, self.qc, images)
 
                 # Statistics estimation.
-#                 intensity_map, variability_map, intensity_subtracted = self.call(
-#                     s, self.statistics, images
-#                 )
+                #                 intensity_map, variability_map, intensity_subtracted = self.call(
+                #                     s, self.statistics, images
+                #                 )
 
                 # Sigma clipping.
                 peaks, center, scale = self.call(s, self.clipper, images)
@@ -228,7 +256,7 @@ class LivePulseFinder:
 
         # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
         # print(self.timings)
- 
+
         # anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=3)
         # anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
@@ -236,13 +264,10 @@ class LivePulseFinder:
         # plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
 
         # with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
-        #     pickle.dump(self.timings, f)  
-            
+        #     pickle.dump(self.timings, f)
+
         # with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore
-        #     pickle.dump(self.runningcatalog, f)  
-
-
-        
+        #     pickle.dump(self.runningcatalog, f)
 
 
 def get_config():
