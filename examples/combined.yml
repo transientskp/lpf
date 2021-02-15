@@ -1,29 +1,15 @@
 # Global
 array_length: 512
 df: 195312.5
-dt: 2
+dt: 1
 frequencies:
-  [
-    64.84375,
-    64.0625,
-    63.4765625,
-    62.6953125,
-    62.109375,
-    61.5234375,
-    60.7421875,
-    60.15625,
-    59.375,
-    58.7890625,
-    58.203125,
-    57.421875,
-    56.8359375,
-    56.0546875,
-    55.46875,
-    54.8828125,
-  ]
+  [ 30.46875, 32.2265625, 33.984375, 36.5234375, 38.0859375,
+       41.6015625, 43.1640625, 45.1171875, 47.4609375, 48.828125,
+       50.1953125, 52.1484375, 54.296875, 55.46875, 57.8125,
+       62.5]
 
 # LPF
-fits_directory: '/data/2020-05-10T05:42:00-05:45:10_all'
+fits_directory: '/zfs/helios/filer0/mkuiack1/202101040400/'
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
 timestamp_start_stop: [0, 21]
 # Indices [start, stop] that specify the location of subband in the filename.
@@ -36,12 +22,12 @@ center_sigma: 21
 scale_sigma: 21
 sigma_clipping_maxiter: 1
 output_folder: './runs/'
-mmap_n_sources: 4096
+mmap_n_sources: 6000
 mmap_n_timesteps: 1024
 use_quality_control: false
 box_size: 16
 separation_crit: 1.
-nn_checkpoint: '/afhome/ruhe/projects/lpf/data/nn/epoch_1.ckpt'
+nn_checkpoint: 'data/nn/epoch_33.ckpt'
 
 # Simulation
 nparams: 4
