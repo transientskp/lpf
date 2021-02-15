@@ -105,12 +105,14 @@ class LivePulseFinder:
 
         os.makedirs(config["output_folder"])  # type: ignore
         monitor_length = self.array_length // 2  # type: ignore
+        cache_size = monitor_length if config["cache_size"] == -1 else config["cache_size"]
         self.runningcatalog = RunningCatalog(
             config["output_folder"],  # type: ignore
             config["box_size"],  # type: ignore
             config["mmap_n_sources"],  # type: ignore
             self.n_timesteps,  # type: ignore
             monitor_length=monitor_length,  # type: ignore
+            cache_size=cache_size,
             separation_crit=config["separation_crit"],  # type: ignore
         )
 

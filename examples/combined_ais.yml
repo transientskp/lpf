@@ -42,6 +42,7 @@ use_quality_control: false
 box_size: 16
 separation_crit: 1.
 nn_checkpoint: '/afhome/ruhe/projects/lpf/data/nn/epoch_1.ckpt'
+cache_size: 4  # -1 if same as array_length.
 
 # Simulation
 nparams: 4
