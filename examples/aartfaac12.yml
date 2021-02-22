@@ -1,9 +1,9 @@
 # Path to directory containing .fits files.
-fits_directory: '/data/2020-05-10T05:39:00-05:42:10_all/'
+fits_directory: '/data/2020-05-10T05:42:00-05:45:10_all'
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
-timestamp_start_stop: [0, 19]
+timestamp_start_stop: [0, 21]
 # Indices [start, stop] that specify the location of subband in the filename.
-subband_start_stop: [24, 27]
+subband_start_stop: [24, 28]
 image_size: 2300 
 kappa: 5
 detection_radius: 1024 
@@ -16,28 +16,6 @@ mmap_n_timesteps: 1024
 use_quality_control: false
 box_size: 16
 separation_crit: 1.
-array_length: 64
+array_shape: [16, 128]
 nn:
-  checkpoint: '/afhome/ruhe/projects/lpf/data/nn/epoch_23.ckpt'
-  architecture: [
-      # ['conv', in_channels, out_channels, kernel_size, stride, padding]
-      ["conv", 1, 8, 1, [1, 1], 0],
-      ["act"],
-      ["conv", 8, 16, 3, [1, 2], 1],
-      ["act"],
-      ["conv", 16, 32, 3, [1, 2], 1],
-      ["act"],
-      ["conv", 32, 64, 3, [2, 2], 1],
-      ["act"],
-      ["conv", 64, 128, 3, [2, 2], 1],
-      ["act"],
-      ["conv", 128, 256, 3, [2, 2], 1],
-      ["act"],
-      ["conv", 256, 512, 3, [2, 2], 1],
-      ["act"],
-      ["act"],
-      ["flatten"],
-      ["act"],
-      # ['linear', in_features, out_features]
-      ["linear", 512, 5],
-    ]
+  checkpoint: '/afhome/ruhe/projects/lpf/data/nn/epoch_1.ckpt'

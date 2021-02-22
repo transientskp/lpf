@@ -6,11 +6,14 @@ import torch
 import pandas as pd
 from numpy.lib.format import open_memmap
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 tensor_or_ndarray = Union[np.ndarray, torch.Tensor]
 
 class RunningCatalog:
-    def __init__(self, output_folder: str, box_size: int, mmap_n_sources: int, mmap_n_timesteps: int, monitor_length: int, separation_crit: float):
+    def __init__(self, output_folder: str, box_size: int, mmap_n_sources: int, mmap_n_timesteps: int, cache_size: int, monitor_length: int, separation_crit: float):
         # See _initialize
         self.ns_id: int = None  # type: ignore
         self.timesteps: List[table.Table] = None  # type: ignore
@@ -24,6 +27,8 @@ class RunningCatalog:
         self.mmap_n_timesteps = mmap_n_timesteps
         self.monitor_length = monitor_length
         self.separation_crit = separation_crit
+        self.cache_size = cache_size
+        self.print_cache_warning = True
 
     def _initialize(
         self, detected_sources: table.Table, images: tensor_or_ndarray
@@ -68,6 +73,12 @@ class RunningCatalog:
         # )  # type: ignore
         # print(idx[:10])
         # exit()
+
+        if len(detected_sources) == 0:
+            logger.warning("Got empty source list.")
+            # Return an empty table.
+            return prev.copy()[:0]
+
 
         idx, d2d, _ = detected_sources["coordinate"].match_to_catalog_sky(  # type: ignore
             prev["coordinate"]
@@ -196,10 +207,11 @@ class RunningCatalog:
         self, t: int, detected_sources: table.Table, images: tensor_or_ndarray
     ) -> None:
 
-        detected_sources = filter_nan(detected_sources)
         # detected_sources = filter_duplicates(detected_sources)
 
+
         if len(detected_sources) > 0:
+            detected_sources = filter_nan(detected_sources)
             detected_sources["last_detected"] = t
             detected_sources["is_monitored"] = False
             detected_sources["is_backward_fill"] = False
@@ -242,7 +254,9 @@ class RunningCatalog:
 
         self.image_cache: List[tensor_or_ndarray]
         self.image_cache.append(images.cpu())
-        self.image_cache = self.image_cache[-self.monitor_length:]
+        if len(self.image_cache) == self.cache_size:
+            logger.warning("Cache limit reached at cache size %s.", self.cache_size)
+        self.image_cache = self.image_cache[-self.cache_size:]
 
     def filter_sources_for_analysis(self, t: int, length: int):
         
