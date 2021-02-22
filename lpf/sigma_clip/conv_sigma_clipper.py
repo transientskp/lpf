@@ -67,6 +67,7 @@ class ConvSigmaClipper:
         all_peaks = torch.zeros_like(x, dtype=bool)
         i = 1
         while True:
+            # print(x.max())
             # TODO: on cpu, might want to resort to non-fft convolution with large stride and interpolation.
             # Similar to what TraP does.
             center = convolve_fft(x, self.center_filter, axes=(-1, -2))
@@ -81,13 +82,14 @@ class ConvSigmaClipper:
                 break
 
             all_peaks = all_peaks | peaks
+            x[peaks] = center[peaks]
             if i == self.maxiter:
                 break
 
             i += 1
 
-            x[peaks] = center[peaks]
 
         all_peaks = all_peaks & self.mask
 
-        return all_peaks, center, scale
+        # x: residual
+        return all_peaks, x, center, scale

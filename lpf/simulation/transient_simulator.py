@@ -55,8 +55,6 @@ class Event(object):
             else:
                 pulse_centered = np.concatenate([pulse.copy()[shift:], np.zeros((shift))])
 
-            if pulse_centered.max() > 0:
-                pulse_centered = pulse_centered / pulse_centered.max()
             assert np.all(pulse_centered >= 0)
 
             val = pulse_centered.copy()

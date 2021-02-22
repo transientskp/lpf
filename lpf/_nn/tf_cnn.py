@@ -3,6 +3,9 @@ from torch import nn
 from typing import List, Union, Tuple, Dict, Any
 
 from torch.nn import Flatten, Softplus
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TimeFrequencyCNN(nn.Module):
@@ -38,6 +41,10 @@ class TimeFrequencyCNN(nn.Module):
         self.softplus = Softplus(beta=1e-2)  # type: ignore
         self.nn = nn.Sequential(*self.layers)
 
+        if "checkpoint" in config:
+            logger.info("Checkpoint provided in NN config. Loading weights.")
+            self.load(config["checkpoint"])
+
     def set_device(self, device: str):
         self.device = device
         self.to(self.device)
@@ -45,7 +52,8 @@ class TimeFrequencyCNN(nn.Module):
     def forward(self, batch: List[torch.Tensor]):  # type: ignore
 
         input, _ = batch  # type: ignore
-        input: torch.Tensor = (input - input.mean(dim=(-1, -2), keepdims=True)) / input.std(dim=(-1, -2), keepdims=True)  # type: ignore
+        input: torch.Tensor = (input - input.mean(dim=(-1, -2), keepdims=True)) / \
+            input.std(dim=(-1, -2), keepdims=True)  # type: ignore
         input: torch.Tensor = torch.clamp(input, -5, 5)  # type: ignore
         output = self.nn(input.to(self.device))
         # Second output is standard deviation.
@@ -55,7 +63,8 @@ class TimeFrequencyCNN(nn.Module):
         return means, variances
 
     def load(self, path: str):
-        if self.device is None:
-            raise  ValueError("Please set device first.")
-        state_dict: Dict[str, Any] = torch.load(path, map_location=torch.device(self.device))  # type: ignore
+        # if self.device is None:
+        #     raise ValueError("Please set device first.")
+        state_dict: Dict[str, Any] = torch.load(
+            path, map_location=torch.device(torch.device('cpu')))  # type: ignore
         self.load_state_dict(state_dict["model_state_dict"])
