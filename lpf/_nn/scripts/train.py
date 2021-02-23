@@ -14,7 +14,6 @@ from lpf._nn import configure_dataloaders
 from torch import distributions
 from torch.nn import functional as F
 import shutil
-# from lpf._nn.vis import plot_batch_of_images
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,18 +56,6 @@ class CustomLoss(nn.Module):
         if batch_idx == 0:
             result = {
                 "loss": loss,
-#                 "images": plot_batch_of_images(
-#                     batch[0], 
-#                     dm_p, 
-#                     variances, 
-#                     dm_t,
-#                     other_outputs[:, 0],
-#                     other_targets[:, 0],
-#                     other_outputs[:, 1],
-#                     other_targets[:, 1],
-#                     other_outputs[:, 2],
-#                     other_targets[:, 2],
-#                 ) 
             }
 
         else:

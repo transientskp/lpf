@@ -1,6 +1,6 @@
 import torch
 from numpy.lib.format import open_memmap
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import os
 import glob
 import shutil

@@ -1,15 +1,13 @@
-from torch._C import Value
-from lpf.sigma_clip.conv_sigma_clipper import ConvSigmaClipper
+import logging
 import os
 import pickle
+import shutil
 import sys
 import time
 import warnings
 from collections import defaultdict
 from types import FunctionType, MethodType
 from typing import Any, Callable, List, Tuple
-import matplotlib.pyplot as plt
-import shutil
 
 import astropy.io.fits  # type: ignore
 import numpy as np
@@ -20,18 +18,13 @@ from astropy.utils.exceptions import AstropyWarning  # type: ignore
 from astropy.wcs import WCS  # type: ignore
 from tqdm import trange  # type: ignore
 
-# from lpf.statistics_estimation import StatisticsEstimator
-# from lpf.sigma_clip import SigmaClipper
-# from lpf.sigma_clip import ConvSigmaClipper
-from lpf._nn.tf_cnn_auto import TimeFrequencyCNN
-
-from lpf.bolts.vis import plot_skymap, catalog_video
-# from lpf.bolts.vis import catalog_video
+from lpf._nn import TimeFrequencyCNN
+from lpf.bolts.vis import catalog_video, plot_skymap
 from lpf.quality_control import QualityControl
 from lpf.running_catalog import RunningCatalog
+from lpf.sigma_clip import ConvSigmaClipper
 from lpf.source_finder import SourceFinderMaxFilter
 from lpf.surveys import Survey
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -61,25 +54,9 @@ class LivePulseFinder:
             self.cuda: bool = False
 
         self.qc = QualityControl()
-        # self.statistics = StatisticsEstimator(
-        #     config["intensity_map_sigma"],  # type: ignore
-        #     config["variability_map_sigma"],  # type: ignore
-        #     stride=config["filter_stride"],  # type: ignore
-        #     truncate=config["filter_truncate"],  # type: ignore
-        # )
 
-        # self.clipper = SigmaClipper(
-        #     config["image_shape"], config["kappa"], config["detection_radius"]  # type: ignore
-        # )
         self.array_length: int = config["array_length"]
 
-        # self.clipper = LocalSigmaClipper(
-        #     config["image_shape"],  # type: ignore
-        #     config["kappa"],  # type: ignore
-        #     config["detection_radius"],  # type: ignore
-        #     config["sigmaclip_kernel_size"],  # type: ignore
-        #     config["sigmaclip_stride"],  # type: ignore
-        # )
         self.image_size = config["image_size"]
 
         self.clipper = ConvSigmaClipper(
@@ -135,7 +112,6 @@ class LivePulseFinder:
     def _load_data(self, t: int) -> Tuple[torch.Tensor, WCS]:
 
         images: List[np.ndarray] = []  # type: ignore
-        # headers: List[astropy.io.fits.Header] = []
         header = None
 
         for f in self.survey[t]["file"]:  # type: ignore
@@ -244,11 +220,6 @@ class LivePulseFinder:
                 if self.config["use_quality_control"]:
                     images: torch.Tensor = self.call(s, self.qc, images)
 
-                # Statistics estimation.
-                #                 intensity_map, variability_map, intensity_subtracted = self.call(
-                #                     s, self.statistics, images
-                #                 )
-
                 # Sigma clipping.
                 peaks, residual, center, scale = self.call(s, self.clipper, images)
 
@@ -280,10 +251,19 @@ class LivePulseFinder:
 
         # plt.imsave(os.path.join(self.config["output_folder"], "center.pdf"), center.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
         # plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
-        plot_skymap(center.mean(0).cpu(), fname=os.path.join(self.config["output_folder"], "center.pdf"), n_std=3)
-        plot_skymap(scale.mean(0).cpu(), fname=os.path.join(self.config["output_folder"], "scale.pdf"), n_std=3)
 
-        with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
+        plot_skymap(
+            center.mean(0).cpu(),
+            fname=os.path.join(self.config["output_folder"], "center.pdf"),
+            n_std=3,
+        )
+        plot_skymap(
+            scale.mean(0).cpu(),
+            fname=os.path.join(self.config["output_folder"], "scale.pdf"),
+            n_std=3,
+        )
+
+        with open(os.path.join(self.config["output_folder"], "timings.pkl"), "wb") as f:  # type: ignore
             pickle.dump(self.timings, f)
 
         # with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore

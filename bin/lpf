@@ -1,8 +1,0 @@
-#!/bin/bash
-# Changing path to LPF installation directory.
-FILE_DIR=$(dirname $0)
-cd $FILE_DIR/..
-# Activate environment.
-. ./activate.sh
-# Run LPF
-python ./lpf/main.py "$@"

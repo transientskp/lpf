@@ -12,8 +12,18 @@ logger = logging.getLogger(__name__)
 
 tensor_or_ndarray = Union[np.ndarray, torch.Tensor]
 
+
 class RunningCatalog:
-    def __init__(self, output_folder: str, box_size: int, mmap_n_sources: int, mmap_n_timesteps: int, cache_size: int, monitor_length: int, separation_crit: float):
+    def __init__(
+        self,
+        output_folder: str,
+        box_size: int,
+        mmap_n_sources: int,
+        mmap_n_timesteps: int,
+        cache_size: int,
+        monitor_length: int,
+        separation_crit: float,
+    ):
         # See _initialize
         self.ns_id: int = None  # type: ignore
         self.timesteps: List[table.Table] = None  # type: ignore
@@ -67,18 +77,10 @@ class RunningCatalog:
     def _match_sources(self, t: int, prev: table.Table, detected_sources: table.Table) -> table.Table:  # type: ignore
         # Match detected sources to previous ones.
         # detected_sources.sort(keys="detection_flux", reverse=True)  # type: ignore
-        # print(detected_sources[:10])
-        # idx, d2d, _ = detected_sources["coordinate"].match_to_catalog_sky(  # type: ignore
-        # prev["coordinate"]
-        # )  # type: ignore
-        # print(idx[:10])
-        # exit()
-
         if len(detected_sources) == 0:
             logger.warning("Got empty source list.")
             # Return an empty table.
             return prev.copy()[:0]
-
 
         idx, d2d, _ = detected_sources["coordinate"].match_to_catalog_sky(  # type: ignore
             prev["coordinate"]
@@ -117,8 +119,9 @@ class RunningCatalog:
 
         return curr
 
-
-    def _update_metadata(self, t: int, new_sources: table.Table, matched_sources: table.table):
+    def _update_metadata(
+        self, t: int, new_sources: table.Table, matched_sources: table.table
+    ):
         # Update metadata.
         self.meta.loc[matched_sources["id"], "last_measured"] = t  # type: ignore
         # New sources metadata
@@ -130,47 +133,9 @@ class RunningCatalog:
             [self.meta, pd.DataFrame(meta, columns=columns, index=new_sources["id"])]  # type: ignore
         )  # type: ignore
 
-        # print(detected_sources[:10])
-        # print(detected_sources[-10:])
-        # exit()
-
-        # idx: np.ndarray
-        # d2d: np.ndarray
-        # # Sort on distance.
-        # s = d2d.argsort()
-        # idx = idx[s]
-        # print(idx)
-        # print(len(idx))
-        # exit()
-        # d2d = d2d[s]
-        # detected_sources: table.Table = detected_sources[s]  # type: ignore
-
-        # # Association prioritised on distance (only 1 to 1).
-        # _, s = np.unique(idx, return_index=True)
-        # # Treat duplicates (not associated) as new sources.
-        # first_mask = np.zeros(len(idx), dtype=bool)
-        # first_mask[s] = True
-
-        # # Matches are the closest sources within the criterion.
-        # match_mask: np.ndarray = (d2d.deg < SEPARATION_CRIT) & first_mask  # type: ignore
-
-        # # ID assignment vector.
-        # id_assignment = np.empty(len(detected_sources))
-        # id_assignment[:] = np.nan
-
-        # # Add matched source ids.
-        # matched_source_ids: np.ndarray = prev[idx[match_mask]]["id"].copy()  # type: ignore
-        # id_assignment[match_mask] = matched_source_ids
-
-        # # New source ids.
-        # num_new_sources = len(match_mask[~match_mask])
-        # new_idx = range(self.ns_id, num_new_sources + self.ns_id)
-        # self.ns_id += num
-        # id_assignment[~match_mask] = new_idx
-
-        # return id_assignment  # type: ignore
-
-    def _monitor_sources(self, t: int, prev: table.Table, curr: table.Table) -> table.Table:
+    def _monitor_sources(
+        self, t: int, prev: table.Table, curr: table.Table
+    ) -> table.Table:
         to_monitor: table.Table = prev[  # type: ignore
             (prev["last_detected"] > t - self.monitor_length)  # type: ignore
             & ~np.isin(prev["id"], curr["id"])  # type: ignore
@@ -207,9 +172,6 @@ class RunningCatalog:
         self, t: int, detected_sources: table.Table, images: tensor_or_ndarray
     ) -> None:
 
-        # detected_sources = filter_duplicates(detected_sources)
-
-
         if len(detected_sources) > 0:
             detected_sources = filter_nan(detected_sources)
             detected_sources["last_detected"] = t
@@ -227,7 +189,6 @@ class RunningCatalog:
         # Get current time-step's source-table.
         curr = self._match_sources(t, prev, detected_sources)  # type: ignore
 
-
         # Add sources to monitor.
         curr = self._monitor_sources(t, prev, curr)
 
@@ -237,7 +198,7 @@ class RunningCatalog:
         # Add measured fluxes to the data array at the correct ids and timestep.
         self.flux_data[curr["id"], :, t] = curr["peak_flux"]
 
-        new_source_mask: np.ndarray = curr['new_source']  # type: ignore
+        new_source_mask: np.ndarray = curr["new_source"]  # type: ignore
         matched_sources: table.Table = curr[~new_source_mask]  # type: ignore
         new_sources: table.Table = curr[new_source_mask]  # type: ignore
         self._update_metadata(t, new_sources, matched_sources)  # type: ignore
@@ -256,20 +217,19 @@ class RunningCatalog:
         self.image_cache.append(images.cpu())
         if len(self.image_cache) == self.cache_size:
             logger.warning("Cache limit reached at cache size %s.", self.cache_size)
-        self.image_cache = self.image_cache[-self.cache_size:]
+        self.image_cache = self.image_cache[-self.cache_size :]
 
     def filter_sources_for_analysis(self, t: int, length: int):
-        
+
         runcat_t = self.timesteps[t]
-        lengths = (t - self.meta.iloc[runcat_t['id']]['start_t']).values
-        
+        lengths = (t - self.meta.iloc[runcat_t["id"]]["start_t"]).values
+
         runcat_t = runcat_t[lengths >= length]
-        
-        flux_arrays = self.flux_data[runcat_t['id'], :, t - length: t]
-        
-        print(f"Neural network input shape: {flux_arrays.shape}")
+
+        flux_arrays = self.flux_data[runcat_t["id"], :, t - length : t]
+
+        logger.info("Neural network input shape: %s", flux_arrays.shape)
         return runcat_t, flux_arrays
-        
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
         return self.add_timestep(*args, **kwargs)

@@ -24,8 +24,6 @@ def catalog_video(survey, catalog, timesteps, n_std=3):
         
         images.append(np.stack(subbands).mean(0))
             
-
-    # images = [np.stack([astropy.io.fits.getdata(f).squeeze() for f in survey[t]['file']]).mean(0) for t in timesteps]
     timesteps = [catalog[t] for t in timesteps]
 
     dpi = matplotlib.rcParams["figure.dpi"]

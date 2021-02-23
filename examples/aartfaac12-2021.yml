@@ -1,8 +1,8 @@
 # Global
 array_length: 512
-delta_f: 0.1953125
-delta_t: 2
-frequencies:
+delta_f: 0.1953125 # MHz
+delta_t: 2 # s
+frequencies: # MHz
   [
     30.46875,
     32.2265625,
@@ -21,27 +21,27 @@ frequencies:
     57.8125,
     62.5,
   ]
+
 # LPF
 fits_directory: "/project/druhe/A12_202101040400/"
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
 timestamp_start_stop: [0, 21]
 # Indices [start, stop] that specify the location of subband in the filename.
 subband_start_stop: [24, 28]
-n_timesteps: 72
-detection_radius: 1024
-image_size: 2300
-kappa: 4.5
-center_sigma: 21
-scale_sigma: 21
+n_timesteps: -1 # -1 if unlimited.
+detection_radius: 1024 # Pixels
+image_size: 2300 # Pixels
+kappa: 5
+center_sigma: 25 # Sigma of Gaussian used for background estimation.
+scale_sigma: 25
 sigma_clipping_maxiter: 1
 output_folder: "./runs/"
-mmap_n_sources: 6000
-mmap_n_timesteps: 1024
+mmap_n_sources: 6000 # Make sure this is large enough.
 use_quality_control: false
-box_size: 16
-separation_crit: 1.
+box_size: 16 # Pixels
+separation_crit: 1. # Degrees
 nn_checkpoint: "data/nn/epoch_32.ckpt"
-cache_size: 64  # -1 if unlimited.
+cache_size: 64 # -1 if unlimited.
 
 # Simulation
 nparams: 4
@@ -56,10 +56,10 @@ nevents: 8192
 nn_output_folder: "data/nn/"
 lr: 0.001
 epochs: 32
-noise_path: "data/noise/noise.npy"  # Optional, (put 'null' if not available.)
+noise_path: "data/noise/noise.npy" # Optional, (put 'null' if not available.)
 noise_multiplier: 1 # Noise value, compare with fluence value.
 batch_size: 32
-num_workers: 4
+num_workers: 4 # Used for data-loading during training.
 
 # Optional: Noise Extractor
 n_arrays: 512

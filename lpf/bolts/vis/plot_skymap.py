@@ -5,7 +5,9 @@ from astropy.wcs.utils import skycoord_to_pixel  # type: ignore
 import torch
 
 
-def plot_skymap(image, skycoord=None, wcs=None, n_std=None, reverse=False, c='red', fname=None):
+def plot_skymap(
+    image, skycoord=None, wcs=None, n_std=None, reverse=False, c="red", fname=None
+):
 
     if skycoord is not None:
         pixels = list(skycoord_to_pixel(skycoord, wcs))
@@ -16,7 +18,7 @@ def plot_skymap(image, skycoord=None, wcs=None, n_std=None, reverse=False, c='re
             pixels[1] = y
 
     if isinstance(image, torch.Tensor):
-        image = image.to('cpu').numpy()
+        image = image.to("cpu").numpy()
 
     image = image.squeeze()
 
@@ -24,9 +26,11 @@ def plot_skymap(image, skycoord=None, wcs=None, n_std=None, reverse=False, c='re
     if n_std:
         mean = np.nanmean(image)
         std = np.nanstd(image)
-        plt.imshow(image, vmin=mean - n_std * std, vmax=mean + n_std * std, cmap='viridis')
+        plt.imshow(
+            image, vmin=mean - n_std * std, vmax=mean + n_std * std, cmap="viridis"
+        )
     else:
-        plt.imshow(image, cmap='viridis')
+        plt.imshow(image, cmap="viridis")
 
     plt.colorbar(orientation="horizontal", fraction=0.046, pad=0.04)
 

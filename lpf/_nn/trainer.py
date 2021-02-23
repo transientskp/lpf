@@ -72,7 +72,6 @@ class Trainer:
         pbar = tqdm(
             self.val_loader,  # type: ignore
             position=0,
-            # desc=f"Epoch {model.current_epoch} - Training:",
             total=num_iterations,
         )
 
@@ -181,7 +180,6 @@ class Trainer:
         print("Testing validation routine.")
         self.validate(num_iterations=1)
 
-        # for _ in range(self.epochs):
         while self.is_training:
             self.train()
             self.validate()

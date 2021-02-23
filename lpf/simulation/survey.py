@@ -37,8 +37,6 @@ class SurveySimulator:
 
         t: int
         for t in trange(n_timesteps):  # type: ignore
-            # f = os.path.join(self.output_dir, f"{t:03}.npy")
-
             im: np.ndarray
             sky = np.float32(self.skysim(self.catalog))
 
@@ -51,11 +49,6 @@ class SurveySimulator:
                 filename = f'{t_str}-{band_str}.fits'
                 filename = os.path.join(output_dir, filename)
 
-
-                # template: np.ndarray = resize(self.template, [1, 1, *im.shape])
-
-
-                # data = template * 0 + im[None, None] 
                 if t == 0:
                     mean = im.mean()
                     std = im.std()

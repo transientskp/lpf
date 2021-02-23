@@ -218,6 +218,4 @@ class TransientSimulator:
         self.data_mmap: np.ndarray = open_memmap(
             os.path.join(self.output_folder, "data.npy"),
             mode="r",
-            # dtype=np.float32,
-            # shape=(config["nevents"], len(self.telescope.frequencies), config["array_length"]),  # type: ignore
         )
