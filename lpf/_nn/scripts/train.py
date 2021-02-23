@@ -2,7 +2,7 @@
 from torch import nn
 import os
 from lpf._nn import Trainer
-from lpf._nn.tf_cnn_auto import TimeFrequencyCNN
+from lpf._nn import TimeFrequencyCNN
 import yaml
 import sys
 import random

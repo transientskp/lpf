@@ -25,9 +25,9 @@ frequencies: # MHz
 # LPF
 fits_directory: "/project/druhe/ASf_201909011855/"
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
-timestamp_start_stop: [0, 21]
+timestamp_start_stop: [0, 19]
 # Indices [start, stop] that specify the location of subband in the filename.
-subband_start_stop: [24, 28]
+subband_start_stop: [21, 25]
 n_timesteps: -1 # -1 if unlimited.
 detection_radius: 448 # Pixels
 image_size: 1024 # Pixels

@@ -6,9 +6,10 @@ from torch.nn import Flatten, Softplus
 import numpy as np
 
 MAX_CHANNELS = 512
+N_OUTPUT = 5
 
 
-def build_neural_network(data_shape, n_output):
+def build_neural_network(data_shape):
     # ['conv', in_channels, out_channels, kernel_size, stride, padding]
     channels = 8
     architecture = [
@@ -49,19 +50,19 @@ def build_neural_network(data_shape, n_output):
             assert np.all(current_shape == 1)
 
     architecture.append(["flatten"])
-    architecture.append(["linear", channels, n_output])
+    architecture.append(["linear", channels, N_OUTPUT])
 
     return architecture
 
 
 class TimeFrequencyCNN(nn.Module):
-    def __init__(self, data_shape, n_output):
+    def __init__(self, data_shape):
         super(TimeFrequencyCNN, self).__init__()
         self.device = None
 
         self.act = nn.LeakyReLU(inplace=False)
 
-        self.architecture = build_neural_network(data_shape, n_output)
+        self.architecture = build_neural_network(data_shape)
 
         self.layers = []
         for layer in self.architecture:
