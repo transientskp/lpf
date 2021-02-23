@@ -45,7 +45,7 @@ python lpf/simulation/scripts/extract_noise.py examples/aartfaac12.yml
 ```
 python lpf/_nn/scripts/train.py examples/aartfaac12.yml
 ```
-4. Wait until it's converged.
+3. Wait until it's converged.
 
 ## Run LPF
 1. Edit your configuration file to your needs. 
