@@ -56,4 +56,4 @@ python lpf/main.py examples/aartfaac12.yml
 3. The parameters of analyzed transients will be output to a `.csv` in the specified output folder. This can be opened for analysis. The `.npy` file in the output folder constains all the dynamic spectra.
 
 ## Analyse Results
-1. The `.csv` file with the inferred parameters is in the output folder you specified. You can use `pandas` to inspect it and filter it for interesting bursts. An example `.ipynb` file is given in `analysis/result_analysis.ipynb`.
+1. The `.csv` file with the inferred parameters is in the output folder you specified. You can use `pandas` to inspect it and filter it for interesting bursts. An example `.ipynb` file is given in `lpf/analysis/result_analysis.ipynb`.
