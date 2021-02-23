@@ -43,7 +43,7 @@ python lpf/simulation/scripts/extract_noise.py examples/aartfaac12.yml
 1. Edit the neural network section of your configuration file to your needs.
 2. Run
 ```
-python lpf/_nn/scripts/train_a12.py examples/aartfaac12.yml
+python lpf/_nn/scripts/train.py examples/aartfaac12.yml
 ```
 4. Wait until it's converged.
 
