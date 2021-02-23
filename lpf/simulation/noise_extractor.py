@@ -12,26 +12,27 @@ class NoiseExtractor:
         super().__init__()
         self.config = config
 
-        self.nimages: int = config["nimages"]
+        self.n_arrays: int = config["n_arrays"]
         self.num_patches_per_image: int = config["num_patches_per_image"]
-        self.nfreq: int = config["nfreq"]
+        self.nfreq: int = len(config["frequencies"])
         self.array_length: int = config["array_length"]
-        self.radius: int = config["radius"]
+        self.radius: int = config["detection_radius"]
         self.image_size: int = config["image_size"]
-        self.box_size: int = config['box_size']
+        self.box_size: int = config["box_size"]
 
         self.survey = Survey(
             config["fits_directory"],  # type: ignore
             config["timestamp_start_stop"],  # type: ignore
             config["subband_start_stop"],  # type: ignore
+            config["delta_t"],  # type: ignore
         )
 
-        os.makedirs(config['output_folder'])  # type: ignore
+        os.makedirs(config["noise_output_folder"])  # type: ignore
         self.mmap: np.ndarray = open_memmap(
-            os.path.join(config["output_folder"], "noise.npy"),  # type: ignore
+            os.path.join(config["noise_output_folder"], "noise.npy"),  # type: ignore
             dtype=np.float32,
             mode="w+",
-            shape=(self.nimages, self.nfreq, self.array_length),
+            shape=(self.n_arrays, self.nfreq, self.array_length),
         )
 
     def integrate_random_sequence(self, to_integrate: int):
@@ -49,26 +50,34 @@ class NoiseExtractor:
             survey_timestep = self.survey[t + i]
             files: List[np.ndarray] = [astropy.io.fits.getdata(f) for f in survey_timestep["file"]]  # type: ignore
             files: np.ndarray = np.stack(files).squeeze()  # type: ignore
-            patches = np.stack([files[:, x_l[j] - self.box_size // 2: x_l[j] + self.box_size // 2, y_l[j] - self.box_size // 2: y_l[j] + self.box_size // 2] for j in range(to_integrate)])
+            patches = np.stack(
+                [
+                    files[
+                        :,
+                        x_l[j] - self.box_size // 2 : x_l[j] + self.box_size // 2,
+                        y_l[j] - self.box_size // 2 : y_l[j] + self.box_size // 2,
+                    ]
+                    for j in range(to_integrate)
+                ]
+            )
 
             integrated: np.ndarray = patches.sum(axis=(-1, -2))  # type: ignore
             tf_array[:, :, i] = integrated
 
         return tf_array
 
-
     def run(self):
         counter = 0
-        pbar = tqdm(total=self.nimages)
+        pbar = tqdm(total=self.n_arrays)
 
-        while counter < self.nimages:
-            to_integrate: int = min(self.nimages - counter, self.num_patches_per_image)
+        while counter < self.n_arrays:
+            to_integrate: int = min(self.n_arrays - counter, self.num_patches_per_image)
 
             tf_array = self.integrate_random_sequence(to_integrate)
             assert not np.isnan(tf_array).any()
-            self.mmap[counter: counter + to_integrate] = tf_array
+            self.mmap[counter : counter + to_integrate] = tf_array
             counter += to_integrate
             pbar.update(to_integrate)  # type: ignore
 
-            if counter == self.nimages:
+            if counter == self.n_arrays:
                 break

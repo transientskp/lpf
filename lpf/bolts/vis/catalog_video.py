@@ -4,12 +4,28 @@ import astropy.io.fits
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from tqdm import tqdm
 
 def catalog_video(survey, catalog, timesteps, n_std=3):
     fps = 1
 
+    images = []
 
-    images = [np.stack([astropy.io.fits.getdata(f).squeeze() for f in survey[t]['file']]).mean(0) for t in timesteps]
+    for t in tqdm(timesteps):
+        subbands = []
+        for f in survey[t]['file']:
+            try:
+                image = astropy.io.fits.getdata(f).squeeze()
+            except OSError as e:
+                print(e)
+                image = np.zeros_like(image)
+
+            subbands.append(image)
+        
+        images.append(np.stack(subbands).mean(0))
+            
+
+    # images = [np.stack([astropy.io.fits.getdata(f).squeeze() for f in survey[t]['file']]).mean(0) for t in timesteps]
     timesteps = [catalog[t] for t in timesteps]
 
     dpi = matplotlib.rcParams["figure.dpi"]

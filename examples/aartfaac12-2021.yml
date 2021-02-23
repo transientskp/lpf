@@ -1,0 +1,67 @@
+# Global
+array_length: 512
+delta_f: 0.1953125
+delta_t: 2
+frequencies:
+  [
+    30.46875,
+    32.2265625,
+    33.984375,
+    36.5234375,
+    38.0859375,
+    41.6015625,
+    43.1640625,
+    45.1171875,
+    47.4609375,
+    48.828125,
+    50.1953125,
+    52.1484375,
+    54.296875,
+    55.46875,
+    57.8125,
+    62.5,
+  ]
+# LPF
+fits_directory: "/project/druhe/A12_202101040400/"
+# Indices [start, stop] that specify the location of the time-stamp in the filename.
+timestamp_start_stop: [0, 21]
+# Indices [start, stop] that specify the location of subband in the filename.
+subband_start_stop: [24, 28]
+n_timesteps: 72
+detection_radius: 1024
+image_size: 2300
+kappa: 4.5
+center_sigma: 21
+scale_sigma: 21
+sigma_clipping_maxiter: 1
+output_folder: "./runs/"
+mmap_n_sources: 6000
+mmap_n_timesteps: 1024
+use_quality_control: false
+box_size: 16
+separation_crit: 1.
+nn_checkpoint: "data/nn/epoch_32.ckpt"
+cache_size: 64  # -1 if unlimited.
+
+# Simulation
+nparams: 4
+dm_range: [0, 512]
+fluence_range: [0.0, 128.0]
+width_range: [0, 32]
+spec_ind_range: [-4, 4]
+simulation_output_folder: "data/transient_sim/a12"
+nevents: 8192
+
+# Neural Network
+nn_output_folder: "data/nn/"
+lr: 0.001
+epochs: 32
+noise_path: "data/noise/noise.npy"  # Optional, (put 'null' if not available.)
+noise_multiplier: 1 # Noise value, compare with fluence value.
+batch_size: 32
+num_workers: 4
+
+# Optional: Noise Extractor
+n_arrays: 512
+num_patches_per_image: 512
+noise_output_folder: "data/noise/"

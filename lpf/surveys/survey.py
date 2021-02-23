@@ -20,7 +20,7 @@ class Survey:
         path: str,
         timestamp_start_stop: Tuple[int, int],
         subband_start_stop: Tuple[int, int],
-        dt: int,
+        delta_t: int,
     ):
 
         self.survey_length = None
@@ -41,7 +41,7 @@ class Survey:
         # This resamples the data onto the specified delta T grid. Filling NaN when images are missing.
         self.indexed_data = (
             self.data.pivot(columns="band")
-            .resample(f"{dt}S")
+            .resample(f"{delta_t}S")
             .first()
             .stack(dropna=False)
         )
@@ -83,15 +83,9 @@ class Survey:
         return data
 
     def __len__(self):
-        return len(self.indexed_data)
+        return self.indexed_data.index.get_level_values(0).nunique()
 
     def __getitem__(self, index: int) -> pd.DataFrame:
-        # sliced: pd.DataFrame = self.indexed_data.loc[index].dropna()  # type: ignore
-        # TODO: for performance these can be removed at runtime.
-        # min_t = sliced['timestamp'].min()  # type: ignore
-        # diff_endtime = (sliced['timestamp'] - min_t).dt.seconds  # type: ignore
-        # assert (diff_endtime < 2).all(), sliced  # type: ignore
-        # return sliced
         timestep = self.indexed_data.loc[self.time_index[index]]
         num_nan = timestep.isna().any(axis=1).sum()
         if num_nan > len(timestep) * RAISE_NAN_WARN_FRACTION:

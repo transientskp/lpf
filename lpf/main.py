@@ -25,7 +25,7 @@ from tqdm import trange  # type: ignore
 # from lpf.sigma_clip import ConvSigmaClipper
 from lpf._nn.tf_cnn_auto import TimeFrequencyCNN
 
-# from lpf.bolts.vis import plot_skymap, catalog_video
+from lpf.bolts.vis import plot_skymap, catalog_video
 # from lpf.bolts.vis import catalog_video
 from lpf.quality_control import QualityControl
 from lpf.running_catalog import RunningCatalog
@@ -46,7 +46,7 @@ class LivePulseFinder:
             config["fits_directory"],  # type: ignore
             config["timestamp_start_stop"],  # type: ignore
             config["subband_start_stop"],  # type: ignore
-            config["dt"],
+            config["delta_t"],
         )
 
         self.n_timesteps = (
@@ -105,7 +105,9 @@ class LivePulseFinder:
 
         os.makedirs(config["output_folder"])  # type: ignore
         monitor_length = self.array_length // 2  # type: ignore
-        cache_size = monitor_length if config["cache_size"] == -1 else config["cache_size"]
+        cache_size = (
+            monitor_length if config["cache_size"] == -1 else config["cache_size"]
+        )
         self.runningcatalog = RunningCatalog(
             config["output_folder"],  # type: ignore
             config["box_size"],  # type: ignore
@@ -138,8 +140,15 @@ class LivePulseFinder:
 
         for f in self.survey[t]["file"]:  # type: ignore
             if f is not None:
-                image, header = astropy.io.fits.getdata(f, header=True)  # type: ignore
-                image = image.squeeze().astype(np.float32)
+                try:
+                    image, header = astropy.io.fits.getdata(f, header=True)  # type: ignore
+                    image = image.squeeze().astype(np.float32)
+                except OSError as e:
+                    print(f"Got error at time-step {t}.")
+                    print(e)
+                    image = np.zeros(
+                        [self.image_size, self.image_size], dtype=np.float32
+                    )
             else:
                 image = np.zeros([self.image_size, self.image_size], dtype=np.float32)
 
@@ -241,7 +250,7 @@ class LivePulseFinder:
                 #                 )
 
                 # Sigma clipping.
-                peaks, center, scale = self.call(s, self.clipper, images)
+                peaks, residual, center, scale = self.call(s, self.clipper, images)
 
                 # Source localization
                 detected_sources = self.call(s, self.sourcefinder, images, peaks, wcs=wcs)  # type: ignore
@@ -256,17 +265,26 @@ class LivePulseFinder:
                     means, stds = self.call(s, self._infer_parameters, x_batch)
                     self.call(s, self._write_to_csv, t, runcat_t, means, stds)  # type: ignore
 
+                if t == min(64, self.n_timesteps - 1):
+                    logger.warning("Making catalog video. One moment...")
+                    anim = catalog_video(
+                        self.survey,
+                        self.runningcatalog,
+                        range(self.n_timesteps),
+                        n_std=3,
+                    )
+                    anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
+
         # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
         # print(self.timings)
 
-        # anim = catalog_video(self.survey, self.runningcatalog, range(length), n_std=3)
-        # anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
-
         # plt.imsave(os.path.join(self.config["output_folder"], "center.pdf"), center.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
         # plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
+        plot_skymap(center.mean(0).cpu(), fname=os.path.join(self.config["output_folder"], "center.pdf"), n_std=3)
+        plot_skymap(scale.mean(0).cpu(), fname=os.path.join(self.config["output_folder"], "scale.pdf"), n_std=3)
 
-        # with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
-        #     pickle.dump(self.timings, f)
+        with open(os.path.join(self.config['output_folder'], "timings.pkl"), 'wb') as f:  # type: ignore
+            pickle.dump(self.timings, f)
 
         # with open(os.path.join(self.config['output_folder'], "runningcatalog.pkl"), 'wb') as f:  # type: ignore
         #     pickle.dump(self.runningcatalog, f)
