@@ -57,3 +57,4 @@ python lpf/main.py examples/aartfaac12.yml
 
 ## Analyse Results
 1. The `.csv` file with the inferred parameters is in the output folder you specified. You can use `pandas` to inspect it and filter it for interesting bursts. An example `.ipynb` file is given in `lpf/analysis/result_analysis.ipynb`.
+2. Also: in the provided output folder a catalog video is saved to show the source-detection pipeline and an example of the estimated background and variability maps are saved.
