@@ -23,8 +23,9 @@ frequencies: # MHz
   ]
 
 # LPF
-fits_directory: "/project/druhe/A12_202101040400/"
+fits_directory: "/data/A12_202101040400/"
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
+# 2021-01-04T04:12:50.2-SB320.fits
 timestamp_start_stop: [0, 21]
 # Indices [start, stop] that specify the location of subband in the filename.
 subband_start_stop: [24, 28]
@@ -40,7 +41,7 @@ mmap_n_sources: 6000 # Make sure this is large enough.
 use_quality_control: false
 box_size: 16 # Pixels
 separation_crit: 1. # Degrees
-nn_checkpoint: "data/nn/epoch_32.ckpt"
+nn_checkpoint: "data/nn/epoch_3.ckpt"
 cache_size: 64 # -1 if unlimited.
 
 # Simulation
@@ -50,13 +51,13 @@ fluence_range: [0.0, 128.0]
 width_range: [0, 32]
 spec_ind_range: [-4, 4]
 simulation_output_folder: "data/transient_sim/a12"
-nevents: 8192
+nevents: 1024
 
 # Neural Network
 nn_output_folder: "data/nn/"
 lr: 0.001
 epochs: 32
-noise_path: "data/noise/noise.npy" # Optional, (put 'null' if not available.)
+noise_path: null # Optional, (put 'null' if not available.)
 noise_multiplier: 1 # Noise value, compare with fluence value.
 batch_size: 32
 num_workers: 4 # Used for data-loading during training.
