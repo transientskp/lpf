@@ -119,7 +119,7 @@ class LivePulseFinder:
                 try:
                     image, header = astropy.io.fits.getdata(f, header=True)  # type: ignore
                     image = image.squeeze().astype(np.float32)
-                except OSError as e:
+                except (ValueError, OSError) as e:
                     print(f"Got error at time-step {t}.")
                     print(e)
                     image = np.zeros(
@@ -236,12 +236,12 @@ class LivePulseFinder:
                     means, stds = self.call(s, self._infer_parameters, x_batch)
                     self.call(s, self._write_to_csv, t, runcat_t, means, stds)  # type: ignore
 
-                if t == min(64, self.n_timesteps - 1):
+                if t == min(32, self.n_timesteps - 1):
                     logger.warning("Making catalog video. One moment...")
                     anim = catalog_video(
                         self.survey,
                         self.runningcatalog,
-                        range(self.n_timesteps),
+                        range(t),
                         n_std=3,
                     )
                     anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore

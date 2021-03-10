@@ -1,5 +1,5 @@
 # Global
-array_length: 512
+array_length: 128
 delta_f: 0.1953125 # MHz
 delta_t: 2 # s
 frequencies: # MHz
@@ -23,7 +23,7 @@ frequencies: # MHz
   ]
 
 # LPF
-fits_directory: "/data/A12_202101040400/"
+fits_directory: "/project/druhe/A12_202101040400/"
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
 # 2021-01-04T04:12:50.2-SB320.fits
 timestamp_start_stop: [0, 21]
@@ -51,7 +51,7 @@ fluence_range: [0.0, 128.0]
 width_range: [0, 32]
 spec_ind_range: [-4, 4]
 simulation_output_folder: "data/transient_sim/a12"
-nevents: 1024
+nevents: 16384
 
 # Neural Network
 nn_output_folder: "data/nn/"
