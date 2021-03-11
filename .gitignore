@@ -9,3 +9,4 @@ experiments/
 build/
 dist/
 lpf.egg-info/
+lpf/analysis

@@ -1,27 +1,46 @@
 # Global
-array_length: 128
+array_length: 512
 delta_f: 0.1953125 # MHz
-delta_t: 2 # s
-frequencies: # MHz
+delta_t: 1 # s
+# frequencies: # MHz
+#   [
+#     30.46875,
+#     32.2265625,
+#     33.984375,
+#     36.5234375,
+#     38.0859375,
+#     41.6015625,
+#     43.1640625,
+#     45.1171875,
+#     47.4609375,
+#     48.828125,
+#     50.1953125,
+#     52.1484375,
+#     54.296875,
+#     55.46875,
+#     57.8125,
+#     62.5,
+#   ]
+
+frequencies:
   [
-    30.46875,
-    32.2265625,
-    33.984375,
-    36.5234375,
-    38.0859375,
-    41.6015625,
-    43.1640625,
-    45.1171875,
-    47.4609375,
     48.828125,
-    50.1953125,
+    51.3671875,
     52.1484375,
+    53.3203125,
     54.296875,
     55.46875,
+    57.03125,
     57.8125,
-    62.5,
+    58.3984375,
+    60.546875,
+    62.109375,
+    62.890625,
+    63.8671875,
+    64.453125,
+    65.4296875,
+    69.53125,
   ]
-
 # LPF
 fits_directory: "/project/druhe/A12_202101040400/"
 # Indices [start, stop] that specify the location of the time-stamp in the filename.
@@ -41,25 +60,25 @@ mmap_n_sources: 6000 # Make sure this is large enough.
 use_quality_control: false
 box_size: 16 # Pixels
 separation_crit: 1. # Degrees
-nn_checkpoint: "data/nn/epoch_3.ckpt"
-cache_size: 64 # -1 if unlimited.
+nn_checkpoint: "/home/druhe/lpf_test/lpf/data/nn/epoch_18.ckpt"
+cache_size: -1 # -1 if unlimited.
 
 # Simulation
 nparams: 4
 dm_range: [0, 512]
-fluence_range: [0.0, 128.0]
-width_range: [0, 32]
+peak_flux_range: [0., 16.] # Compare with Neural Network's 'noise multiplier.'
+width_range: [0, 64]
 spec_ind_range: [-4, 4]
 simulation_output_folder: "data/transient_sim/a12"
-nevents: 16384
+nevents: 32768
 
 # Neural Network
 nn_output_folder: "data/nn/"
-lr: 0.001
+lr: 1.e-3
 epochs: 32
 noise_path: null # Optional, (put 'null' if not available.)
 noise_multiplier: 1 # Noise value, compare with fluence value.
-batch_size: 32
+batch_size: 64
 num_workers: 4 # Used for data-loading during training.
 
 # Optional: Noise Extractor

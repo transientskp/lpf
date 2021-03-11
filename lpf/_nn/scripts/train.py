@@ -15,6 +15,10 @@ from torch import distributions
 from torch.nn import functional as F
 import shutil
 import logging
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from astropy.visualization import ZScaleInterval
 
 logger = logging.getLogger(__name__)
 
@@ -32,31 +36,45 @@ def get_config():
 
 
 class CustomLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, output_folder):
         super(CustomLoss, self).__init__()
-
-    def log_likelihood(self, t, y_mu, y_sigma):
-        d = distributions.Independent(distributions.Normal(y_mu, y_sigma), 1)
-        return d.log_prob(t).mean(0)
+        self.output_folder = output_folder
 
     def forward(self, model_output, batch, batch_idx):
-        means = model_output[0]
-        variances = model_output[1]
+        py_x = model_output
         target = batch[1]
-        dm_t = target[:, :1]
-        dm_p = means[:, :1]
 
-        other_outputs = means[:, 1:]
-        other_targets = target[:, 1:]
+        loss = -distributions.Independent(py_x, 1).log_prob(target.to(py_x.mean.device)).mean(0)
 
-        other_loss = F.mse_loss(other_outputs, other_targets.to(other_outputs.device))
-        dm_nll = -self.log_likelihood(dm_t.to(dm_p.device), dm_p, variances)
-        loss = other_loss + dm_nll
+        means = py_x.mean
+        covariance = py_x.covariance_matrix
+
+        p = means.shape[-1]
+        variances = torch.sqrt(py_x.covariance_matrix[:, range(p), range(p)])
 
         if batch_idx == 0:
             result = {
                 "loss": loss,
             }
+
+            with torch.no_grad():
+                transients = batch[0]
+                transients_numpy = transients.cpu().numpy() # shape batchsize,1,nchan,arraylen
+                transient_param = means.cpu().numpy()
+                transient_target = target.cpu().numpy()
+                for i in range(len(transients_numpy)):
+                    data = transients_numpy[i,0,:,:]
+                    plt.figure(figsize=(10,6))
+                    vmin, vmax = ZScaleInterval().get_limits(data)
+                    plt.imshow(data,vmin=vmin, vmax=vmax, aspect="auto")
+                    plt.title(fr"DM: {transient_param[i,0]:.2f} $\pm$ {variances[i, 0]:.2f} - {transient_target[i,0]:.2f}"
+                              f"\nFluence: {transient_param[i,1]:.2f} - {transient_target[i,1]:.2f}"
+                              f"\nWidth: {transient_param[i,2]:.2f} - {transient_target[i,2]:.2f}")
+                    plt.savefig(os.path.join(self.output_folder, f"extract_noise_transient_{str(i)}"))
+                    plt.close()
+                    
+                    if i == 3:
+                        break
 
         else:
             result = {"loss": loss}
@@ -185,7 +203,7 @@ def main():
 
     tf_cnn = TimeFrequencyCNN([len(config["frequencies"]), config["array_length"]])
     tf_cnn.set_device(device)
-    loss_fn = CustomLoss()
+    loss_fn = CustomLoss(output_folder)
     trainer = Trainer(
        config, output_folder, tf_cnn, loss_fn, train_loader, val_loader, test_loader
     )

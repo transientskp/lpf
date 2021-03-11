@@ -47,10 +47,10 @@ class LivePulseFinder:
         )
 
         if torch.cuda.is_available():  # type: ignore
-            print("Running on GPU.")
+            logger.info("Running on GPU.")
             self.cuda: bool = True
         else:
-            print("Running on CPU.")
+            logger.info("Running on CPU.")
             self.cuda: bool = False
 
         self.qc = QualityControl()
@@ -147,20 +147,22 @@ class LivePulseFinder:
 
     def _infer_parameters(self, x_batch: np.ndarray):
         x_batch_tensor = torch.from_numpy(x_batch).to(self.nn.device)[:, None]  # type: ignore
-        predictions = self.nn(
+        py_x = self.nn(
             (x_batch_tensor, None)
         )  # 'None' is placeholder for the targets.
-        means, stds = predictions
+        means = py_x.mean
+        covariance_matrix = py_x.covariance_matrix
+        m = means.shape[-1]
+        stds = torch.sqrt(covariance_matrix[:, range(m), range(m)])
         means = means.permute(-1, -2).to("cpu").numpy()
         stds = stds.permute(-1, -2).to("cpu").numpy()
-
         return means, stds
 
     def _write_to_csv(
         self, timestep: int, runcat_t: np.ndarray, means: np.ndarray, stds: np.ndarray
     ) -> None:
-        dm, fluence, width, index = means
-        (dm_std,) = stds
+        dm, peak_flux, width, index = means
+        (dm_std, peak_flux, width_std, index_std) = stds
 
         data = {
             "timestep": timestep,
@@ -177,7 +179,7 @@ class LivePulseFinder:
             "peak_flux": runcat_t["peak_flux"].max(),
             "dm": dm,
             "dm_std": dm_std,
-            "fluence": fluence,
+            "peak_flux": peak_flux,
             "width": width,
             "spectral_index": index,
         }
@@ -237,7 +239,7 @@ class LivePulseFinder:
                     self.call(s, self._write_to_csv, t, runcat_t, means, stds)  # type: ignore
 
                 if t == min(32, self.n_timesteps - 1):
-                    logger.warning("Making catalog video. One moment...")
+                    logger.warning("Making catalog video and example background and RMS estimations. One moment...")
                     anim = catalog_video(
                         self.survey,
                         self.runningcatalog,
@@ -246,22 +248,23 @@ class LivePulseFinder:
                     )
                     anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
+                    plot_skymap(
+                        center.mean(0).cpu(),
+                        fname=os.path.join(self.config["output_folder"], "center.pdf"),
+                        n_std=3,
+                    )
+                    plot_skymap(
+                        scale.mean(0).cpu(),
+                        fname=os.path.join(self.config["output_folder"], "scale.pdf"),
+                        n_std=3,
+                    )
+
         # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
         # print(self.timings)
 
         # plt.imsave(os.path.join(self.config["output_folder"], "center.pdf"), center.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
         # plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
 
-        plot_skymap(
-            center.mean(0).cpu(),
-            fname=os.path.join(self.config["output_folder"], "center.pdf"),
-            n_std=3,
-        )
-        plot_skymap(
-            scale.mean(0).cpu(),
-            fname=os.path.join(self.config["output_folder"], "scale.pdf"),
-            n_std=3,
-        )
 
         with open(os.path.join(self.config["output_folder"], "timings.pkl"), "wb") as f:  # type: ignore
             pickle.dump(self.timings, f)

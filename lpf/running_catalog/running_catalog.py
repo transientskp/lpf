@@ -179,7 +179,7 @@ class RunningCatalog:
             detected_sources["is_backward_fill"] = False
         # Run initialization on first time-step.
         if self.ns_id == None:
-            print("Initializing catalog.")
+            logger.info("Initializing catalog.")
             return self._initialize(detected_sources, images)
 
         # Otherwise, main loop.

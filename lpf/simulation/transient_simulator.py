@@ -12,8 +12,8 @@ from tqdm import trange
 
 logger = logging.getLogger(__name__)
 
-DT = 1e-2
-DF = 1e-2
+DT = 1e-1
+DF = 1e-1
 
 
 def any_intersection_sorted(intervals, reverse=False):
@@ -105,6 +105,7 @@ class Event(object):
         pulse = self.gaussian_profile(length_full_burst, self.width * t_osr)
 
         t0 = int(np.random.rand() * length_full_burst)
+        # t0 = int(0.5 * length_full_burst)
         spectrum = []
 
         for band in reversed(telescope.passbands):
@@ -116,7 +117,9 @@ class Event(object):
                 delay = delays[i]
                 frequency = frequencies[i]
                 shift = t0 - length_full_burst // 2 + delay
-                val = pulse.copy() * self.fluence / self.width
+                # val = pulse.copy() * self.fluence / self.width
+                # Changed to using peak_flux
+                val = pulse.copy() * self.fluence
                 val = val * (frequency / self.f_ref) ** self.spec_ind
                 val = np.roll(val, shift)
                 if shift < 0:
@@ -138,20 +141,20 @@ class EventSimulator:
     def __init__(
         self,
         dm_range: Tuple[float, float],
-        fluence_range: Tuple[float, float],
+        peak_flux_range: Tuple[float, float],
         width_range: Tuple[float, float],
         spec_ind_range: Tuple[float, float],
     ) -> None:
         super().__init__()
 
         self.dm_range = dm_range
-        self.fluence_range = fluence_range
+        self.peak_flux_range = peak_flux_range
         self.width_range = width_range
         self.spec_ind_range = spec_ind_range
 
     def draw_event_parameters(self) -> Tuple[float, float, float, float]:
         dm = np.random.uniform(*self.dm_range)
-        fluence = np.random.uniform(*self.fluence_range)
+        fluence = np.random.uniform(*self.peak_flux_range)
         width = np.random.uniform(*self.width_range)
         spec_ind = np.random.uniform(*self.spec_ind_range)
         return dm, fluence, width, spec_ind
@@ -179,7 +182,7 @@ class TransientSimulator:
 
         self.event_simulator = EventSimulator(
             config["dm_range"],  # type: ignore
-            config["fluence_range"],  # type: ignore
+            config["peak_flux_range"],  # type: ignore
             config["width_range"],  # type: ignore
             config["spec_ind_range"],  # type: ignore
         )
