@@ -147,9 +147,7 @@ class LivePulseFinder:
 
     def _infer_parameters(self, x_batch: np.ndarray):
         x_batch_tensor = torch.from_numpy(x_batch).to(self.nn.device)[:, None]  # type: ignore
-        py_x = self.nn(
-            (x_batch_tensor, None)
-        )  # 'None' is placeholder for the targets.
+        py_x = self.nn((x_batch_tensor, None))  # 'None' is placeholder for the targets.
         means = py_x.mean
         covariance_matrix = py_x.covariance_matrix
         m = means.shape[-1]
@@ -162,7 +160,7 @@ class LivePulseFinder:
         self, timestep: int, runcat_t: np.ndarray, means: np.ndarray, stds: np.ndarray
     ) -> None:
         dm, peak_flux, width, index = means
-        (dm_std, peak_flux, width_std, index_std) = stds
+        (dm_std, peak_flux_std, width_std, index_std) = stds
 
         data = {
             "timestep": timestep,
@@ -180,8 +178,11 @@ class LivePulseFinder:
             "dm": dm,
             "dm_std": dm_std,
             "peak_flux": peak_flux,
+            "peak_flux_std": peak_flux_std,
             "width": width,
+            "width_std": width_std,
             "spectral_index": index,
+            "spectral_index_std": index_std,
         }
 
         df = pd.DataFrame.from_dict(data, dtype=np.float32)  # type: ignore
@@ -239,7 +240,9 @@ class LivePulseFinder:
                     self.call(s, self._write_to_csv, t, runcat_t, means, stds)  # type: ignore
 
                 if t == min(32, self.n_timesteps - 1):
-                    logger.warning("Making catalog video and example background and RMS estimations. One moment...")
+                    logger.warning(
+                        "Making catalog video and example background and RMS estimations. One moment..."
+                    )
                     anim = catalog_video(
                         self.survey,
                         self.runningcatalog,
@@ -264,7 +267,6 @@ class LivePulseFinder:
 
         # plt.imsave(os.path.join(self.config["output_folder"], "center.pdf"), center.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
         # plt.imsave(os.path.join(self.config["output_folder"], "scale.pdf"), scale.mean(0).cpu(), vmin=-5, vmax=5)  # type: ignore
-
 
         with open(os.path.join(self.config["output_folder"], "timings.pkl"), "wb") as f:  # type: ignore
             pickle.dump(self.timings, f)
