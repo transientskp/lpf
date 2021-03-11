@@ -48,8 +48,25 @@ class NoiseExtractor:
         for i in tqdm(range(self.array_length)):  # type: ignore
             i: int
             survey_timestep = self.survey[t + i]
-            files: List[np.ndarray] = [astropy.io.fits.getdata(f) for f in survey_timestep["file"]]  # type: ignore
-            files: np.ndarray = np.stack(files).squeeze()  # type: ignore
+            # files: List[np.ndarray] = [astropy.io.fits.getdata(f) for f in survey_timestep["file"]]  # type: ignore
+            images: List[np.ndarray] = []  # type: ignore
+            for f in survey_timestep["file"]:  # type: ignore
+                if f is not None:
+                    try:
+                        image = astropy.io.fits.getdata(f)  # type: ignore
+                        image = image.squeeze().astype(np.float32)  # type: ignore
+                    except (ValueError, OSError) as e:
+                        print(f"Got loading error error at time-step {t}.")
+                        print(e)
+                        image = np.zeros(
+                            [self.image_size, self.image_size], dtype=np.float32
+                        )
+                else:
+                    image = np.zeros([self.image_size, self.image_size], dtype=np.float32)
+
+                images.append(image)  # type: ignore
+
+            files: np.ndarray = np.stack(images).squeeze()  # type: ignore
             patches = np.stack(
                 [
                     files[
