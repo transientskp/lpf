@@ -35,8 +35,7 @@ class NoiseExtractor:
             shape=(self.n_arrays, self.nfreq, self.array_length),
         )
 
-    def integrate_random_sequence(self, to_integrate: int):
-        tf_array = np.zeros([to_integrate, self.nfreq, self.array_length])
+    def integrate_random_sequence(self, counter, to_integrate: int):
         # Get random locations.
         image_center = self.image_size // 2
         a = np.random.rand(to_integrate) * 2 * np.pi
@@ -46,42 +45,27 @@ class NoiseExtractor:
 
         t = np.random.randint(0, len(self.survey) - self.array_length)
         for i in tqdm(range(self.array_length)):  # type: ignore
-            i: int
             survey_timestep = self.survey[t + i]
-            # files: List[np.ndarray] = [astropy.io.fits.getdata(f) for f in survey_timestep["file"]]  # type: ignore
-            images: List[np.ndarray] = []  # type: ignore
-            for f in survey_timestep["file"]:  # type: ignore
-                if f is not None:
-                    try:
-                        image = astropy.io.fits.getdata(f)  # type: ignore
-                        image = image.squeeze().astype(np.float32)  # type: ignore
-                    except (ValueError, OSError) as e:
-                        print(f"Got loading error error at time-step {t}.")
-                        print(e)
-                        image = np.zeros(
-                            [self.image_size, self.image_size], dtype=np.float32
-                        )
-                else:
-                    image = np.zeros([self.image_size, self.image_size], dtype=np.float32)
+            for l, f in enumerate(survey_timestep["file"]):
+                try:
+                    image = astropy.io.fits.getdata(f, memmap_mode=True)  # type: ignore
+                    image = image.squeeze().astype(np.float32)  # type: ignore
+                except (ValueError, OSError) as e:
+                    print(f"Got loading error error at time-step {t}.")
+                    print(e)
+                    image = np.zeros(
+                        [self.image_size, self.image_size], dtype=np.float32
+                    )                    
+                
+                for j in range(to_integrate):
+                    patch = image[
+                            x_l[j] - self.box_size // 2 : x_l[j] + self.box_size // 2,
+                            y_l[j] - self.box_size // 2 : y_l[j] + self.box_size // 2,
+                        ]
+                    
+                    integrated = patch.sum()
+                    self.mmap[counter + j, l, i] = integrated
 
-                images.append(image)  # type: ignore
-
-            files: np.ndarray = np.stack(images).squeeze()  # type: ignore
-            patches = np.stack(
-                [
-                    files[
-                        :,
-                        x_l[j] - self.box_size // 2 : x_l[j] + self.box_size // 2,
-                        y_l[j] - self.box_size // 2 : y_l[j] + self.box_size // 2,
-                    ]
-                    for j in range(to_integrate)
-                ]
-            )
-
-            integrated: np.ndarray = patches.sum(axis=(-1, -2))  # type: ignore
-            tf_array[:, :, i] = integrated
-
-        return tf_array
 
     def run(self):
         counter = 0
@@ -90,9 +74,9 @@ class NoiseExtractor:
         while counter < self.n_arrays:
             to_integrate: int = min(self.n_arrays - counter, self.num_patches_per_image)
 
-            tf_array = self.integrate_random_sequence(to_integrate)
-            assert not np.isnan(tf_array).any()
-            self.mmap[counter : counter + to_integrate] = tf_array
+            self.integrate_random_sequence(counter, to_integrate)
+
+            assert not np.isnan(self.mmap).any()
             counter += to_integrate
             pbar.update(to_integrate)  # type: ignore
 
