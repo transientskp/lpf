@@ -65,7 +65,7 @@ class TimeFrequencyCNN(nn.Module):
         assert len(data_shape) == 2
         self.act = nn.LeakyReLU(inplace=False)
 
-        num_parameters = 4
+        num_parameters = 5
         num_variances = (num_parameters * (num_parameters + 1) // 2)
 
         architecture, channels = build_neural_network(data_shape)

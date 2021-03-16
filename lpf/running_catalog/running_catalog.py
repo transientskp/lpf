@@ -228,7 +228,7 @@ class RunningCatalog:
 
         flux_arrays = self.flux_data[runcat_t["id"], :, t - length : t]
 
-        logger.info("Neural network input shape: %s", flux_arrays.shape)
+        print("Neural network input shape: %s" % flux_arrays.shape)
         return runcat_t, flux_arrays
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:

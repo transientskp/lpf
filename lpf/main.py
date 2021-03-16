@@ -159,8 +159,8 @@ class LivePulseFinder:
     def _write_to_csv(
         self, timestep: int, runcat_t: np.ndarray, means: np.ndarray, stds: np.ndarray
     ) -> None:
-        dm, peak_flux, width, index = means
-        (dm_std, peak_flux_std, width_std, index_std) = stds
+        dm, peak_flux, width, index, t0 = means
+        (dm_std, peak_flux_std, width_std, index_std, t0_std) = stds
 
         data = {
             "timestep": timestep,
@@ -183,6 +183,8 @@ class LivePulseFinder:
             "width_std": width_std,
             "spectral_index": index,
             "spectral_index_std": index_std,
+            "t0": t0,
+            "t0_std": t0_std,
         }
 
         df = pd.DataFrame.from_dict(data, dtype=np.float32)  # type: ignore
@@ -249,18 +251,21 @@ class LivePulseFinder:
                         range(t),
                         n_std=3,
                     )
-                    anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
+                    if self.config['catalog_video']:
+                        anim.save(os.path.join(self.config["output_folder"], "catalogue_video.mp4"))  # type: ignore
 
-                    plot_skymap(
-                        center.mean(0).cpu(),
-                        fname=os.path.join(self.config["output_folder"], "center.pdf"),
-                        n_std=3,
-                    )
-                    plot_skymap(
-                        scale.mean(0).cpu(),
-                        fname=os.path.join(self.config["output_folder"], "scale.pdf"),
-                        n_std=3,
-                    )
+                    if self.config['background_rms_maps']:
+
+                        plot_skymap(
+                            center.mean(0).cpu(),
+                            fname=os.path.join(self.config["output_folder"], "center.pdf"),
+                            n_std=3,
+                        )
+                        plot_skymap(
+                            scale.mean(0).cpu(),
+                            fname=os.path.join(self.config["output_folder"], "scale.pdf"),
+                            n_std=3,
+                        )
 
         # timings: Dict[str, Any] = {k: np.mean(self.timings[k]) for k in self.timings}  # type: ignore
         # print(self.timings)
