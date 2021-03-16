@@ -44,7 +44,7 @@ class CustomLoss(nn.Module):
         py_x = model_output
         target = batch[1]
 
-        loss = -distributions.Independent(py_x, 1).log_prob(target.to(py_x.mean.device)).mean(0)
+        loss = -distributions.Independent(py_x, 0).log_prob(target.to(py_x.mean.device)).mean(0)
 
         means = py_x.mean
         covariance = py_x.covariance_matrix
