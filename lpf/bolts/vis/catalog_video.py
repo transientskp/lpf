@@ -5,6 +5,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from tqdm import tqdm
+from astropy.visualization import ZScaleInterval
 
 def catalog_video(survey, catalog, timesteps, n_std=3):
     fps = 1
@@ -32,7 +33,8 @@ def catalog_video(survey, catalog, timesteps, n_std=3):
 
     fig = plt.figure(figsize=figsize)
     t = 0
-    img = plt.imshow(images[t], vmin=np.nanmean(images[t]) - n_std * np.nanstd(images[t]), vmax=np.nanmean(images[t]) + n_std * np.nanstd(images[t]))
+    vmin, vmax = ZScaleInterval().get_limits(images[t])
+    img = plt.imshow(images[t], vmin=vmin, vmax=vmax, origin="lower")
     scat = plt.scatter(
         catalog[t]["y_peak"],
         catalog[t]["x_peak"],
@@ -41,7 +43,8 @@ def catalog_video(survey, catalog, timesteps, n_std=3):
         facecolor="none",
         lw=1,
     )
-
+    plt.axis("off")
+    plt.tight_layout()
     def animate_func(t):
         if t % fps == 0:
             print(".", end="")
