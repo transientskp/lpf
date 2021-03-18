@@ -36,7 +36,8 @@ def main():
             f"Fluence: {p[1]:.2f}\n"
             f"Width: {p[2]:.2f}\n"
             f"Index: {p[3]:.2f}\n"
-            f"Peak Value: {burst.max():.2f}\n"
+            f"Time: {p[4]:.2f}\n"
+            # f"Peak Value: {burst.max():.2f}\n"
         )
         plt.axis('off')
         plt.title(title_str)

@@ -74,21 +74,21 @@ class Telescope:
 class Event(object):
     def __init__(
         self,
-        t_ref: int,
         f_ref: float,
+        t_ref: float,
         dm: float,
         fluence: float,
         width: float,
         spec_ind: float,
         disp_ind: float = 2,
     ):
-        self.t_ref = t_ref
         self.f_ref = f_ref
         self.dm = dm
         self.fluence = fluence
         self.width = width
         self.spec_ind = spec_ind
         self.disp_ind = disp_ind
+        self.t_ref = t_ref
 
     def gaussian_profile(self, ntime: int, width: float):
         x: np.ndarray = np.linspace(-ntime // 2, ntime // 2, ntime)  # type: ignore
@@ -105,7 +105,8 @@ class Event(object):
         t_osr = int(telescope.delta_t / DT)
         length_full_burst = telescope.array_length * t_osr
         pulse = self.gaussian_profile(length_full_burst, self.width * t_osr)
-
+        t0 = int(self.t_ref * t_osr)
+        # t0 = int(0.5 * length_full_burst)
         spectrum = []
 
         for band in reversed(telescope.passbands):
@@ -116,7 +117,7 @@ class Event(object):
             for i in range(len(delays)):
                 delay = delays[i]
                 frequency = frequencies[i]
-                shift = self.t_ref - length_full_burst // 2 + delay
+                shift = t0 - length_full_burst // 2 + delay
                 # val = pulse.copy() * self.fluence / self.width
                 # Changed to using peak_flux
                 val = pulse.copy() * self.fluence
@@ -162,8 +163,8 @@ class EventSimulator:
     def __call__(self, telescope: Telescope) -> Tuple[np.ndarray, np.ndarray]:
         dm, fluence, width, spec_ind = self.draw_event_parameters()
         f_ref = np.median(telescope.frequencies)
-        t_ref = int(np.random.rand() * telescope.array_length)
-        event = Event(t_ref, f_ref, dm, fluence, width, spec_ind)
+        t_ref = np.random.rand() * telescope.array_length
+        event = Event(f_ref, t_ref, dm, fluence, width, spec_ind)
         data = event.simulate(telescope)
         return data, np.array([dm, fluence, width, spec_ind, t_ref])
 

@@ -60,17 +60,19 @@ mmap_n_sources: 6000 # Make sure this is large enough.
 use_quality_control: false
 box_size: 16 # Pixels
 separation_crit: 1. # Degrees
-nn_checkpoint: "/home/druhe/lpf_test/lpf/data/nn/epoch_18.ckpt"
+nn_checkpoint: "/home/druhe/lpf_test/lpf/data/nn/epoch_4.ckpt"
 cache_size: -1 # -1 if unlimited.
+catalog_video: false
+background_rms_maps: false
 
 # Simulation
-nparams: 4
+nparams: 5
 dm_range: [0, 512]
 peak_flux_range: [0., 16.] # Compare with Neural Network's 'noise multiplier.'
 width_range: [0, 64]
 spec_ind_range: [-4, 4]
 simulation_output_folder: "data/transient_sim/a12"
-nevents: 32768
+nevents: 16384
 
 # Neural Network
 nn_output_folder: "data/nn/"
@@ -82,6 +84,6 @@ batch_size: 64
 num_workers: 4 # Used for data-loading during training.
 
 # Optional: Noise Extractor
-n_arrays: 512
+n_arrays: 1024
 num_patches_per_image: 512
 noise_output_folder: "data/noise/"
