@@ -25,6 +25,7 @@ from lpf.running_catalog import RunningCatalog
 from lpf.sigma_clip import ConvSigmaClipper
 from lpf.source_finder import SourceFinderMaxFilter
 from lpf.surveys import Survey
+from lpf.bolts.math import create_circular_mask
 
 logger = logging.getLogger(__name__)
 
@@ -215,11 +216,21 @@ class LivePulseFinder:
         return result
 
     def run(self) -> None:
-
+        self.mask: np.ndarray = create_circular_mask(self.config["image_size"], self.config["image_size"], 
+                                                     radius=self.config["detection_radius"])
         t: int
         with torch.no_grad():
             for t in trange(self.n_timesteps):  # type: ignore
                 images, wcs = self._load_data(t)
+
+                value_limit =  torch.mean(images[:,self.mask]) + 100*torch.std(images[:,self.mask])                
+
+                for i in range(len(images)):
+                    if torch.max(np.abs(images[i,self.mask])) > value_limit:
+                        images[i,:,:] *= 0.
+
+                images = torch.clip(images, -value_limit, value_limit)
+
                 s = time.time()
                 # Quality control
                 if self.config["use_quality_control"]:
