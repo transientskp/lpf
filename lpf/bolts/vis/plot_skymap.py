@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.wcs.utils import skycoord_to_pixel  # type: ignore
 import torch
-
+from astropy.visualization import ZScaleInterval
 
 def plot_skymap(
     image, skycoord=None, wcs=None, n_std=None, reverse=False, c="red", fname=None
@@ -24,14 +24,14 @@ def plot_skymap(
 
     fig = plt.figure(figsize=(16, 16))
     if n_std:
-        mean = np.nanmean(image)
-        std = np.nanstd(image)
+        vmin, vmax = ZScaleInterval().get_limits(image)
         plt.imshow(
-            image, vmin=mean - n_std * std, vmax=mean + n_std * std, cmap="viridis"
+            image, vmin=vmin, vmax=vmax, cmap="viridis", origin="lower"
         )
     else:
-        plt.imshow(image, cmap="viridis")
-
+        vmin, vmax = ZScaleInterval().get_limits(image)
+        plt.imshow(image, vmin=vmin, vmax=vmax,  cmap="viridis", origin="lower")
+    plt.axis("off")
     plt.colorbar(orientation="horizontal", fraction=0.046, pad=0.04)
 
     if skycoord is not None:
@@ -43,7 +43,7 @@ def plot_skymap(
             facecolor="none",
             lw=1,
         )
-
+    plt.tight_layout()
     if fname is not None:
         plt.savefig(fname)
     plt.close()
